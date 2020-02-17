@@ -4,6 +4,10 @@ TrueLabelsPath <- args[1]
 PredLabelsPath <- args[2]
 OutputDir <- args[3]
 ToolName <- args[4]
+FeatureNumb <- args[5]
+LabFile <- args[6]
+# TrainingTime <- args[7]
+# TestTime <- args[8]
 
 evaluate <- function(TrueLabelsPath, PredLabelsPath, Indices = NULL){
   "
@@ -83,9 +87,32 @@ evaluate <- function(TrueLabelsPath, PredLabelsPath, Indices = NULL){
   return(result)
 }
 
-results <- evaluate(TrueLabelsPath, PredLabelsPath)
-write.csv(results$Conf, file.path(OutputDir, "Confusion", paste0(ToolName, ".csv")))
-write.csv(results$F1, file.path(OutputDir, "F1", paste0(ToolName, ".csv")))
-write.csv(results$PopSize, file.path(OutputDir, "PopSize", paste0(ToolName, ".csv")))
-df <- data.frame(results[c("MedF1", "Acc", "PercUnl")])
-write.csv(df, file.path(OutputDir, "Summary", paste0(ToolName, ".csv")))
+if("index_name.csv" %in% dir(dirname(LabFile))){
+  load(file.path(dirname(LabFile), dir(dirname(LabFile))[grep("RData", dir(dirname(LabFile)))]))
+  index_name=as.character(read.csv(file.path(dirname(LabFile), "index_name.csv"), header=FALSE)[,1])
+#   train_time <- read.csv(TrainingTime, header=TRUE)[,1]
+#   test_time <- read.csv(TestTime, header=TRUE)[,1]
+}else{
+  Test_Idx=list(NULL)
+  index_name=list("all")
+#   train_time <- sum(read.csv(TrainingTime, header=TRUE)[,1])
+#   test_time <- sum(read.csv(TestTime, header=TRUE)[,1])
+}
+i=0
+for(index in Test_Idx){
+  i=i+1
+  dataset_name=index_name[i]
+  results <- evaluate(TrueLabelsPath, PredLabelsPath, Indices=index)
+  write.csv(results$Conf, file.path(OutputDir, "Confusion", ToolName, FeatureNumb, paste0(dataset_name, ".csv")))
+  write.csv(results$F1, file.path(OutputDir, "F1", ToolName, FeatureNumb, paste0(dataset_name, ".csv")))
+  write.csv(results$PopSize, file.path(OutputDir, "PopSize", ToolName, FeatureNumb, paste0(dataset_name, ".csv")))
+  df <- data.frame(results[c("MedF1", "Acc", "PercUnl")])
+#     ,
+#                    Training_Time=train_time[i],
+#                    Test_Time=test_time[i])
+  write.csv(df, file.path(OutputDir, "Summary", ToolName, FeatureNumb, paste0(dataset_name, ".csv")))
+}
+# whole_df <- data.frame(Data_type=strsplit(OutputDir, "/")[[1]][2],Data=OutputDir,Tool=ToolName, feature=FeatureNumb, df)
+# write.csv(whole_df, "output/result_summary_all.csv", append = TRUE, row.names = FALSE)
+
+  
