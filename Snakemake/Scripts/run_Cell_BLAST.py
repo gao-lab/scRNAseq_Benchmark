@@ -48,7 +48,7 @@ def run_Cell_BLAST(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath 
         features = pd.read_csv(GeneOrderPath,header=0,index_col=None, sep=',')
 
     # read the data and labels
-    data_old = cb.data.ExprDataSet.read_table(DataPath,orientation="cg", sep=",", index_col = 0, header = 0, sparsify = True).normalize()
+    data_old = cb.data.ExprDataSet.read_table(DataPath,orientation="cg", sep=",", index_col = 0, header = 0, sparsify = True)
     labels = pd.read_csv(LabelsPath, header=0,index_col=None, sep=',', usecols = col)
     
     data = cb.data.ExprDataSet(data_old.exprs[tokeep],data_old.obs.iloc[tokeep],data_old.var,data_old.uns)
@@ -72,8 +72,8 @@ def run_Cell_BLAST(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath 
         
         if (NumGenes > 0):
             feat_to_use = features.iloc[0:NumGenes,i]
-            train = train[:,feat_to_use]
-            test = test[:,feat_to_use]
+#             train = train[:,feat_to_use]
+#             test = test[:,feat_to_use]
 
         
         train.obs['cell_type'] = y_train
@@ -85,15 +85,16 @@ def run_Cell_BLAST(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath 
         models = []
     
         for j in range(4):
-            models.append(cb.directi.fit_DIRECTi(train, epoch=num_epoch, patience=10, random_seed = j, path="%d" % j))
+            models.append(cb.directi.fit_DIRECTi(train, feat_to_use, epoch=num_epoch, patience=10, random_seed = j, path="/tmp/cb/benchmark/model_%d" % j))
     
         # train model
-        blast = cb.blast.BLAST(models, train).build_empirical()
+        blast = cb.blast.BLAST(models, train)
         tr_time.append(tm.time()-start)
         
         # predict labels
         start = tm.time()
-        test_pred = blast.query(test).annotate('cell_type')
+        test_hits = blast.query(test)
+        test_pred=test_hits.reconcile_models().filter().annotate('cell_type')
         ts_time.append(tm.time()-start)
 
         truelab.extend(y_test)

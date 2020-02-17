@@ -1,3 +1,4 @@
+import os
 dockerTag = "latest" #FIXME tagged versions
 
 def feature_ranking(w):
@@ -16,6 +17,7 @@ rule all:
         "{output_dir}/evaluation/{measure}/{tool}.csv",
         tool=config["tools_to_run"],
         output_dir=config["output_dir"],
+        input_dir=os.path.dirname(config["output_dir"]),
         measure=["Confusion", "F1", "PopSize", "Summary"])
 
 
@@ -40,6 +42,16 @@ rule evaluate:
     "{wildcards.output_dir}/evaluation "
     "{wildcards.tool} "
     "&> {log}"
+
+
+"""
+    Rule for copy existed CV_folds.RData
+"""
+rule copy_input_CV_folds:
+    input: {input_dir}
+    output:"{output_dir}/CV_folds.RData"
+    shell:
+    "shell test.sh {input} {output}"
 
 
 """
@@ -354,9 +366,10 @@ rule Cell_BLAST:
   log: "{output_dir}/Cell_BLAST/Cell_BLAST.log"
   params:
     n_features = config.get("number_of_features", 0)
-  singularity: "docker://scrnaseqbenchmark/cell_blast:{}".format(dockerTag)
+    # singularity: "docker://scrnaseqbenchmark/cell_blast:{}".format(dockerTag)
+  singularity: "envs/cb-gpu.simg"
   shell:
-    "python3 Scripts/run_Cell_BLAST.py "
+    "python Scripts/run_Cell_BLAST.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
