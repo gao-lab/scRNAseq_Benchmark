@@ -1,6 +1,30 @@
 # scRNAseq_Benchmark
 Benchmarking classification tools for scRNA-seq data
 
+## Extension of the original benchmark pipeline
+
+Changes:
+
+* Updated Cell BLAST pipeline (with default gene selection method)
+* Allows all experiments (datasets, feature sets) to be run at the same time
+* Integrates all results into a single csv file
+* Added plotting script
+
+Requirements:
+
+* snakemake
+* R
+  * ggplot2
+  * dplyr
+  * viridis
+
+Usage:
+
+```bash
+sudo ./create_cb_singularity.sh  # docker requries root privilege
+./run.sh
+```
+
 ## How to use
 [snakemake](https://snakemake.readthedocs.io/en/stable/index.html) and
 [singularity](https://www.sylabs.io/docs/) need to be available on your system.
@@ -93,7 +117,7 @@ You will want to write a wrapper script for the tool you want to
 add to facilitate this. The `"{output_dir}/CV_folds.RData"` input may be
 used to provide your wrapper script with folds for cross_validation.
 It is recommended to make a docker image containing all dependencies for both
-the tool and any wrappers for the tool.  
+the tool and any wrappers for the tool.
 This wrapper script should also make a selection of the features to be used.
 This selection should be based on ranking which can be accessed by providing
 `feature ranking` as input to the wrapper script. The number of features to be

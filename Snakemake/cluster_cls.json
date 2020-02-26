@@ -1,0 +1,44 @@
+{
+    "__default__": {
+        "jobname": "{rule}",
+        "output": "./{wildcards.output_dir}/{rule}.{wildcards.feature_numb}.out",
+        "error": "./{wildcards.output_dir}/{rule}.{wildcards.feature_numb}.err",
+        "account": "gaog_g1",
+        "partition": "cn_icg",
+        "qos": "gaogcnicg",
+        "gres": "",
+        "n_node": 1,
+        "n_task": 1,
+        "n_cpu": "{threads}"
+    },
+
+    "plot": {
+        "output": "./.slurm/{rule}.out",
+        "error": "./.slurm/{rule}.err"
+    },
+
+    "integrate": {
+	    "output": "./.slurm/{rule}.out",
+        "error": "./.slurm/{rule}.err"
+    },
+
+    "evaluate": {
+        "output": "./{wildcards.output_dir}/evaluate_{wildcards.tool}.{wildcards.feature_numb}.out",
+        "error": "./{wildcards.output_dir}/evaluate_{wildcards.tool}.{wildcards.feature_numb}.err"
+    },
+
+    "generate_CV_folds": {
+        "output": "./{wildcards.output_dir}/{rule}.out",
+        "error": "./{wildcards.output_dir}/{rule}.err"
+    },
+
+    "select_seurat_genes": {
+        "output": "./{wildcards.output_dir}/{rule}.out",
+        "error": "./{wildcards.output_dir}/{rule}.err"
+    },
+
+    "generate_dropouts_feature_rankings": {
+        "output": "./{wildcards.output_dir}/{rule}.out",
+        "error": "./{wildcards.output_dir}/{rule}.err"
+    }
+}

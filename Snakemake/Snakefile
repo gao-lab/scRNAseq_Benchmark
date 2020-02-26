@@ -1,3 +1,4 @@
+configfile: "config.yml"
 dockerTag = "latest" #FIXME tagged versions
 
 def feature_ranking(w):
@@ -19,7 +20,18 @@ rule all:
         feature_numb=config["number_of_features"],
         #input_dir=os.path.dirname(config["output_dir"]),
         measure=["Confusion", "F1", "PopSize", "Summary"]),
-    result_summary_all="output/result_summary_all.csv"
+    result_summary_all="output/result_summary_all.csv",
+    figures="output/figures"
+
+
+rule plot:
+  input:
+    data="output/result_summary_all.csv",
+    script="scbench_figs.R"
+  output:
+    directory("output/figures")
+  shell:
+    "Rscript scbench_figs.R"
 
 
 """
@@ -84,7 +96,7 @@ rule evaluate:
 Rule for creating cross validation folds
 """
 rule generate_CV_folds:
-  input: 
+  input:
     lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"]
   output: "{output_dir}/CV_folds.RData"
   log: "{output_dir}/CV_folds.log"
@@ -93,8 +105,8 @@ rule generate_CV_folds:
   singularity: "docker://scrnaseqbenchmark/cross_validation:{}".format(dockerTag)
   threads:1
   shell:
-    "if [ -f \"$(dirname {input})/*.RData\" ]; "
-    "then cp \"$(dirname {input})/*.RData\" {output}; "
+    "if [ -f $(dirname {input})/*.RData ]; "
+    "then cp $(dirname {input})/*.RData {output}; "
     "else "
     "Rscript Cross_Validation.R "
     "{input} "
@@ -123,6 +135,24 @@ rule generate_dropouts_feature_rankings:
         "{wildcards.output_dir} "
         "&> {log}"
 
+"""
+Rule for selecting seurat genes.
+"""
+rule select_seurat_genes:
+    input:
+        datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+        folds = "{output_dir}/CV_folds.RData"
+    output: "{output_dir}/seurat_gene0.csv"
+    log: "{output_dir}/select_seurat_genes.log"
+    singularity: "envs/cb-gpu.simg"
+    threads:1
+    shell:
+        "echo test > {wildcards.output_dir}/test\n"
+        "python3 select_seurat_genes.py "
+        "{input.datafile} "
+        "{input.folds} "
+        "{wildcards.output_dir} "
+        "&> {log}"
 
 """
 Rule for R based tools.
@@ -178,7 +208,7 @@ rule scPred:
     "{input.ranking} "
     "{wildcards.feature_numb} "
     "&> {log}"
-    
+
 rule CaSTLe:
   input:
     datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
@@ -204,7 +234,7 @@ rule CaSTLe:
     "{input.ranking} "
     "{wildcards.feature_numb} "
     "&> {log}"
-    
+
 rule scmapcell:
   input:
     datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
@@ -474,6 +504,62 @@ rule Cell_BLAST:
     "{wildcards.feature_numb} "
     "&> {log}"
 
+rule Cell_BLAST_seurat:
+  input:
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
+    folds = "{output_dir}/CV_folds.RData",
+    seurat_gene = "{output_dir}/seurat_gene0.csv"
+#    ranking = feature_ranking
+  output:
+    pred = "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat_pred.csv",
+    true = "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat_true.csv",
+    test_time = "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat_test_time.csv",
+    training_time = "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat_training_time.csv"
+  log: "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
+  singularity: "envs/cb-gpu.simg"
+  threads:8
+  shell:
+    "python Scripts/run_Cell_BLAST_seurat.py "
+    "{input.datafile} "
+    "{input.labfile} "
+    "{input.folds} "
+    "{wildcards.output_dir}/Cell_BLAST_seurat/{wildcards.feature_numb} "
+    "{wildcards.output_dir} "
+    "{wildcards.feature_numb} "
+    "F "
+    "&> {log}"
+
+rule Cell_BLAST_seurat_aligned:
+  input:
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
+    folds = "{output_dir}/CV_folds.RData",
+    seurat_gene = "{output_dir}/seurat_gene0.csv"
+#    ranking = feature_ranking
+  output:
+    pred = "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned_pred.csv",
+    true = "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned_true.csv",
+    test_time = "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned_test_time.csv",
+    training_time = "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned_training_time.csv"
+  log: "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
+  singularity: "envs/cb-gpu.simg"
+  threads:8
+  shell:
+    "python Scripts/run_Cell_BLAST_seurat.py "
+    "{input.datafile} "
+    "{input.labfile} "
+    "{input.folds} "
+    "{wildcards.output_dir}/Cell_BLAST_seurat_aligned/{wildcards.feature_numb} "
+    "{wildcards.output_dir} "
+    "{wildcards.feature_numb} "
+    "T "
+    "&> {log}"
+
 rule scVI:
   input:
     datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
@@ -670,8 +756,7 @@ rule ACTINN:
   log: "{output_dir}/ACTINN/{feature_numb}/ACTINN.log"
 #  params:
 #    n_features = config.get("number_of_features", 0)
-    # singularity: "docker://scrnaseqbenchmark/ACTINN:{}".format(dockerTag)
-  singularity: "envs/cb-gpu.simg"
+  singularity: "docker://scrnaseqbenchmark/ACTINN:{}".format(dockerTag)
   shell:
     "python Scripts/run_ACTINN.py "
     "{input.datafile} "
@@ -681,7 +766,7 @@ rule ACTINN:
     "{input.ranking} "
     "{wildcards.feature_numb} "
     "&> {log}"
-    
+
 rule LAmbDA:
   input:
     datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
@@ -696,8 +781,7 @@ rule LAmbDA:
   log: "{output_dir}/LAmbDA/{feature_numb}/LAmbDA.log"
 #  params:
 #    n_features = config.get("number_of_features", 0)
-    # singularity: "docker://scrnaseqbenchmark/LAmbDA:{}".format(dockerTag)
-  singularity: "envs/cb-gpu.simg"
+  singularity: "docker://scrnaseqbenchmark/LAmbDA:{}".format(dockerTag)
   shell:
     "python Scripts/run_LAmbDA.py "
     "{input.datafile} "

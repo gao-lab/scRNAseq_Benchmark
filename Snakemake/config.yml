@@ -1,0 +1,183 @@
+Datasets:
+
+  # intra
+  output/Intra-dataset/Pancreatic_data/Baron_Mouse:
+    datafile: input/Intra-dataset/Pancreatic_data/Baron_Mouse/Filtered_MousePancreas_data.csv
+    labfile: input/Intra-dataset/Pancreatic_data/Baron_Mouse/Labels.csv
+    column: 1
+  output/Intra-dataset/Pancreatic_data/Baron_Human:
+    datafile: input/Intra-dataset/Pancreatic_data/Baron_Human/Filtered_Baron_HumanPancreas_data.csv
+    labfile: input/Intra-dataset/Pancreatic_data/Baron_Human/Labels.csv
+    column: 1
+  output/Intra-dataset/Pancreatic_data/Muraro:
+    datafile: input/Intra-dataset/Pancreatic_data/Muraro/Data.csv
+    labfile: input/Intra-dataset/Pancreatic_data/Muraro/Labels.csv
+    column: 1
+  output/Intra-dataset/Pancreatic_data/Segerstolpe:
+    datafile: input/Intra-dataset/Pancreatic_data/Segerstolpe/Filtered_Segerstolpe_HumanPancreas_data.csv
+    labfile: input/Intra-dataset/Pancreatic_data/Segerstolpe/Labels.csv
+    column: 1
+  output/Intra-dataset/Pancreatic_data/Xin:
+    datafile: input/Intra-dataset/Pancreatic_data/Xin/Filtered_Xin_HumanPancreas_data.csv
+    labfile: input/Intra-dataset/Pancreatic_data/Xin/Labels.csv
+    column: 1
+  output/Intra-dataset/CellBench/10x_5cl:
+    datafile: input/Intra-dataset/CellBench/10x_5cl/10x_5cl_data.csv
+    labfile: input/Intra-dataset/CellBench/10x_5cl/Labels.csv
+    column: 1
+  output/Intra-dataset/CellBench/CelSeq2_5cl:
+    datafile: input/Intra-dataset/CellBench/CelSeq2_5cl/CelSeq2_5cl_data.csv
+    labfile: input/Intra-dataset/CellBench/CelSeq2_5cl/Labels.csv
+    column: 1
+  output/Intra-dataset/TM:
+    datafile: input/Intra-dataset/TM/Filtered_TM_data.csv
+    labfile: input/Intra-dataset/TM/Labels.csv
+    column: 1
+  output/Intra-dataset/AMB_1:
+    datafile: input/Intra-dataset/AMB/Filtered_mouse_allen_brain_data.csv
+    labfile: input/Intra-dataset/AMB/Labels.csv
+    column: 1
+  output/Intra-dataset/AMB_2:
+    datafile: input/Intra-dataset/AMB/Filtered_mouse_allen_brain_data.csv
+    labfile: input/Intra-dataset/AMB/Labels.csv
+    column: 2
+  output/Intra-dataset/AMB_3:
+    datafile: input/Intra-dataset/AMB/Filtered_mouse_allen_brain_data.csv
+    labfile: input/Intra-dataset/AMB/Labels.csv
+    column: 3
+  output/Intra-dataset/Zheng_sorted:
+    datafile: input/Intra-dataset/Zheng_sorted/Filtered_DownSampled_SortedPBMC_data.csv
+    labfile: input/Intra-dataset/Zheng_sorted/Labels.csv
+    column: 1
+  output/Intra-dataset/Zheng_68K:
+    datafile: input/Intra-dataset/Zheng_68K/Filtered_68K_PBMC_data.csv
+    labfile: input/Intra-dataset/Zheng_68K/Labels.csv
+    column: 1
+
+  # inter PbmcBench
+  output/Inter-dataset/PbmcBench/10Xv2:
+    datafile: input/Inter-dataset/PbmcBench/10Xv2/10Xv2_pbmc1.csv
+    labfile: input/Inter-dataset/PbmcBench/10Xv2/10Xv2_pbmc1Labels.csv
+    column: 1
+  output/Inter-dataset/PbmcBench/10Xv3:
+    datafile: input/Inter-dataset/PbmcBench/10Xv3/10Xv3_pbmc1.csv
+    labfile: input/Inter-dataset/PbmcBench/10Xv3/10Xv3_pbmc1Labels.csv
+    column: 1
+  output/Inter-dataset/PbmcBench/CEL-Seq:
+    datafile: input/Inter-dataset/PbmcBench/CEL-Seq/CL_pbmc1.csv
+    labfile: input/Inter-dataset/PbmcBench/CEL-Seq/CL_pbmc1Labels.csv
+    column: 1
+  output/Inter-dataset/PbmcBench/Drop-Seq:
+    datafile: input/Inter-dataset/PbmcBench/Drop-Seq/DR_pbmc1.csv
+    labfile: input/Inter-dataset/PbmcBench/Drop-Seq/DR_pbmc1Labels.csv
+    column: 1
+  output/Inter-dataset/PbmcBench/inDrop:
+    datafile: input/Inter-dataset/PbmcBench/inDrop/iD_pbmc1.csv
+    labfile: input/Inter-dataset/PbmcBench/inDrop/iD_pbmc1Labels.csv
+    column: 1
+  output/Inter-dataset/PbmcBench/Smart-Seq2:
+    datafile: input/Inter-dataset/PbmcBench/Smart-Seq2/SM2_pbmc1.csv
+    labfile: input/Inter-dataset/PbmcBench/Smart-Seq2/SM2_pbmc1Labels.csv
+    column: 1
+  output/Inter-dataset/PbmcBench/Seq-Well:
+    datafile: input/Inter-dataset/PbmcBench/Seq-Well/SW_pbmc1.csv
+    labfile: input/Inter-dataset/PbmcBench/Seq-Well/SW_pbmc1Labels.csv
+    column: 1
+
+  # inter Brain
+  output/Inter-dataset/Brain/MouseALM_HumanMTG_3:
+    datafile: input/Inter-dataset/Brain/MouseALM_HumanMTG/MouseALM_HumanMTG.csv
+    labfile: input/Inter-dataset/Brain/MouseALM_HumanMTG/MouseALM_HumanMTG_Labels3.csv
+    column: 1
+  output/Inter-dataset/Brain/MouseV1_HumanMTG_3:
+    datafile: input/Inter-dataset/Brain/MouseV1_HumanMTG/MouseV1_HumanMTG.csv
+    labfile: input/Inter-dataset/Brain/MouseV1_HumanMTG/MouseV1_HumanMTG_Labels3.csv
+    column: 1
+  output/Inter-dataset/Brain/MouseV1_MouseALM_3:
+    datafile: input/Inter-dataset/Brain/MouseV1_MouseALM/MouseV1_MouseALM.csv
+    labfile: input/Inter-dataset/Brain/MouseV1_MouseALM/MouseV1_MouseALM_Labels3.csv
+    column: 1
+  output/Inter-dataset/Brain/MouseV1_MouseALM_HumanMTG_3:
+    datafile: input/Inter-dataset/Brain/MouseV1_MouseALM_HumanMTG/MouseV1_MouseALM_HumanMTG.csv
+    labfile: input/Inter-dataset/Brain/MouseV1_MouseALM_HumanMTG/MouseV1_MouseALM_HumanMTG_Labels3.csv
+    column: 1
+
+  # inter Brain deeper
+  output/Inter-dataset/Brain/MouseALM_HumanMTG_34:
+    datafile: input/Inter-dataset/Brain/MouseALM_HumanMTG/MouseALM_HumanMTG.csv
+    labfile: input/Inter-dataset/Brain/MouseALM_HumanMTG/MouseALM_HumanMTG_Labels34.csv
+    column: 1
+  output/Inter-dataset/Brain/MouseV1_HumanMTG_34:
+    datafile: input/Inter-dataset/Brain/MouseV1_HumanMTG/MouseV1_HumanMTG.csv
+    labfile: input/Inter-dataset/Brain/MouseV1_HumanMTG/MouseV1_HumanMTG_Labels34.csv
+    column: 1
+  output/Inter-dataset/Brain/MouseV1_MouseALM_34:
+    datafile: input/Inter-dataset/Brain/MouseV1_MouseALM/MouseV1_MouseALM.csv
+    labfile: input/Inter-dataset/Brain/MouseV1_MouseALM/MouseV1_MouseALM_Labels34.csv
+    column: 1
+  output/Inter-dataset/Brain/MouseV1_MouseALM_HumanMTG_34:
+    datafile: input/Inter-dataset/Brain/MouseV1_MouseALM_HumanMTG/MouseV1_MouseALM_HumanMTG.csv
+    labfile: input/Inter-dataset/Brain/MouseV1_MouseALM_HumanMTG/MouseV1_MouseALM_HumanMTG_Labels34.csv
+    column: 1
+
+  # inter pancreatic
+  output/Inter-dataset/Pancreatic:
+    datafile: input/Inter-dataset/Pancreatic/Combined_HumanPancreas_data.csv
+    labfile: input/Inter-dataset/Pancreatic/Labels.csv
+    column: 1
+
+  # inter CellBench
+  output/Inter-dataset/CellBench:
+    datafile: input/Inter-dataset/CellBench/Combined_10x_CelSeq2_5cl_data.csv
+    labfile: input/Inter-dataset/CellBench/Labels.csv
+    column: 1
+
+  # rejection unseen
+  output/Rejection/Unseen_populations:
+    datafile: input/Rejection/Unseen_populations/Rejection_data.csv
+    labfile: input/Rejection/Unseen_populations/Rejection_Labels.csv
+    column: 1
+
+  # rejection negative
+  output/Rejection/Negative_controls/Mouse:
+    datafile: input/Rejection/Negative_controls/Mouse/Mouse_Cortex_Pancreas.csv
+    labfile: input/Rejection/Negative_controls/Mouse/Labels.csv
+    column: 1
+  output/Rejection/Negative_controls/Human:
+    datafile: input/Rejection/Negative_controls/Human/Human_PBMC_Pancreas.csv
+    labfile: input/Rejection/Negative_controls/Human/Labels.csv
+    column: 1
+
+
+number_of_features:
+  - 0
+  # - 200
+  # - 500
+  # - 1000
+  # - 2000
+  # - 5000
+
+
+tools_to_run:
+  - Cell_BLAST_seurat
+  - Cell_BLAST_seurat_aligned
+  # - SVM
+  # - SVM_rejection
+  # - singleCellNet
+  # - scmapcell
+  # - scmapcluster
+  # - scID
+  # - CHETAH
+  # - SingleR
+  # - kNN9
+  # - kNN50
+  # - Cell_BLAST
+  # - scVI
+  # - LDA
+  # - LDA_rejection
+  # - NMC
+  # - RF
+  # - scPred  # no singularity
+  # - CaSTLe  # no singularity
+  # - ACTINN  # script bug
+  # - LAmbDA  # libcuda bug
