@@ -1,4 +1,5 @@
 import os 
+from sys import argv
 import numpy as np
 import pandas as pd
 import time as tm
@@ -101,7 +102,8 @@ def run_ACTINN(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath = ""
         pred.to_csv("ACTINN_" + str(NumGenes) + "_Pred_Labels.csv", index = False)
         tot_time.to_csv("ACTINN_" + str(NumGenes) + "_Total_Time.csv", index = False)
         
-        
+
+run_ACTINN(argv[1], argv[2], argv[3], argv[4], argv[5], int(argv[6]))
         
         
         

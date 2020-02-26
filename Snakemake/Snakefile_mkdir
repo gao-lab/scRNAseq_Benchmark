@@ -1,0 +1,12 @@
+configfile: "config.yml"
+
+rule all:
+  input:
+    tool_outputs = expand("{output_dir}/",
+        output_dir=config["Datasets"].keys())
+
+rule mkdir:
+  output:
+    dir=directory("{output_dir}/")
+  shell:
+    "mkdir -p {output.dir} "

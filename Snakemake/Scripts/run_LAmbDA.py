@@ -6,6 +6,7 @@ Created on Thu May 23 13:51:15 2019
 """
 
 import os 
+from sys import argv
 import numpy as np
 import pandas as pd
 import time as tm
@@ -157,6 +158,7 @@ def run_LAmbDA(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath = ""
         tr_time.to_csv("LAmbDA_" + str(NumGenes) + "_Training_Time.csv", index = False)
         ts_time.to_csv("LAmbDA_" + str(NumGenes) + "_Testing_Time.csv", index = False)
 
+run_LAmbDA(argv[1], argv[2], argv[3], argv[4], argv[5], int(argv[6]))
 
 ##### Functions copied from LAmbDA's Github
 def wt_cutoff(colnum,cutoff,Gtmp,gamma):

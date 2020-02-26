@@ -1,3 +1,5 @@
+args <- commandArgs(TRUE)
+
 run_CaSTLe<-function(DataPath,LabelsPath,CV_RDataPath, OutputDir, GeneOrderPath = NULL, NumGenes = NULL){
   "
   run CaSTLe
@@ -140,4 +142,10 @@ run_CaSTLe<-function(DataPath,LabelsPath,CV_RDataPath, OutputDir, GeneOrderPath 
     write.csv(Testing_Time_Castle,'Testing_Time_CaSTLe.csv',row.names = FALSE)
   }
   
+}
+
+if (args[6] == "0") {
+  run_CaSTLe(args[1], args[2], args[3], args[4])
+} else {
+  run_CaSTLe(args[1], args[2], args[3], args[4], args[5], as.numeric(args[6]))
 }

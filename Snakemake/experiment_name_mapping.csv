@@ -1,0 +1,93 @@
+Data,Fold,Group,Train,Test
+Intra-dataset/Pancreatic_data/Baron_Mouse,all,Pancreas,Baron Mouse,Baron Mouse
+Intra-dataset/Pancreatic_data/Baron_Human,all,Pancreas,Baron Human,Baron Human
+Intra-dataset/Pancreatic_data/Muraro,all,Pancreas,Muraro,Muraro
+Intra-dataset/Pancreatic_data/Segerstolpe,all,Pancreas,Segerstolpe,Segerstolpe
+Intra-dataset/Pancreatic_data/Xin,all,Pancreas,Xin,Xin
+Intra-dataset/CellBench/10x_5cl,all,CellBench,10X,10X
+Intra-dataset/CellBench/CelSeq2_5cl,all,CellBench,CEL-Seq2,CEL-Seq2
+Intra-dataset/TM,all,TM,TM,TM
+Intra-dataset/AMB_1,all,Allen Mouse Brain,AMB3,AMB3
+Intra-dataset/AMB_2,all,Allen Mouse Brain,AMB16,AMB16
+Intra-dataset/AMB_3,all,Allen Mouse Brain,AMB92,AMB92
+Intra-dataset/Zheng_sorted,all,PBMC,Zheng sorted,Zheng sorted
+Intra-dataset/Zheng_68K,all,PBMC,Zheng 68K,Zheng 68K
+Inter-dataset/PbmcBench/10Xv2,SM2_pbmc1,PbmcBench,10XV2,SM2
+Inter-dataset/PbmcBench/10Xv2,X10v3_pbmc1,PbmcBench,10XV2,10XV3
+Inter-dataset/PbmcBench/10Xv2,CL_pbmc1,PbmcBench,10XV2,CL
+Inter-dataset/PbmcBench/10Xv2,DR_pbmc1,PbmcBench,10XV2,DR
+Inter-dataset/PbmcBench/10Xv2,iD_pbmc1,PbmcBench,10XV2,iD
+Inter-dataset/PbmcBench/10Xv2,SW_pbmc1,PbmcBench,10XV2,SW
+Inter-dataset/PbmcBench/10Xv2,X10v2_pbmc2,PbmcBench,10XV2,10XV2
+Inter-dataset/PbmcBench/10Xv3,SM2_pbmc1,PbmcBench,10XV3,SM2
+Inter-dataset/PbmcBench/10Xv3,X10v2_pbmc1,PbmcBench,10XV3,10XV2
+Inter-dataset/PbmcBench/10Xv3,CL_pbmc1,PbmcBench,10XV3,CL
+Inter-dataset/PbmcBench/10Xv3,DR_pbmc1,PbmcBench,10XV3,DR
+Inter-dataset/PbmcBench/10Xv3,iD_pbmc1,PbmcBench,10XV3,iD
+Inter-dataset/PbmcBench/10Xv3,SW_pbmc1,PbmcBench,10XV3,SW
+Inter-dataset/PbmcBench/CEL-Seq,SM2_pbmc1,PbmcBench,CEL-Seq2 (CL),SM2
+Inter-dataset/PbmcBench/CEL-Seq,X10v2_pbmc1,PbmcBench,CEL-Seq2 (CL),10XV2
+Inter-dataset/PbmcBench/CEL-Seq,X10v3_pbmc1,PbmcBench,CEL-Seq2 (CL),10XV3
+Inter-dataset/PbmcBench/CEL-Seq,DR_pbmc1,PbmcBench,CEL-Seq2 (CL),DR
+Inter-dataset/PbmcBench/CEL-Seq,iD_pbmc1,PbmcBench,CEL-Seq2 (CL),iD
+Inter-dataset/PbmcBench/CEL-Seq,SW_pbmc1,PbmcBench,CEL-Seq2 (CL),SW
+Inter-dataset/PbmcBench/CEL-Seq,CL_pbmc2,PbmcBench,CEL-Seq2 (CL),CL
+Inter-dataset/PbmcBench/Drop-Seq,SM2_pbmc1,PbmcBench,Drop-seq (DR),SM2
+Inter-dataset/PbmcBench/Drop-Seq,X10v2_pbmc1,PbmcBench,Drop-seq (DR),10XV2
+Inter-dataset/PbmcBench/Drop-Seq,X10v3_pbmc1,PbmcBench,Drop-seq (DR),10XV3
+Inter-dataset/PbmcBench/Drop-Seq,CL_pbmc1,PbmcBench,Drop-seq (DR),CL
+Inter-dataset/PbmcBench/Drop-Seq,iD_pbmc1,PbmcBench,Drop-seq (DR),iD
+Inter-dataset/PbmcBench/Drop-Seq,SW_pbmc1,PbmcBench,Drop-seq (DR),SW
+Inter-dataset/PbmcBench/Drop-Seq,DR_pbmc2,PbmcBench,Drop-seq (DR),DR
+Inter-dataset/PbmcBench/inDrop,SM2_pbmc1,PbmcBench,inDrop (iD),SM2
+Inter-dataset/PbmcBench/inDrop,X10v2_pbmc1,PbmcBench,inDrop (iD),10XV2
+Inter-dataset/PbmcBench/inDrop,X10v3_pbmc1,PbmcBench,inDrop (iD),10XV3
+Inter-dataset/PbmcBench/inDrop,CL_pbmc1,PbmcBench,inDrop (iD),CL
+Inter-dataset/PbmcBench/inDrop,DR_pbmc1,PbmcBench,inDrop (iD),DR
+Inter-dataset/PbmcBench/inDrop,SW_pbmc1,PbmcBench,inDrop (iD),SW
+Inter-dataset/PbmcBench/inDrop,iD_pbmc2,PbmcBench,inDrop (iD),iD
+Inter-dataset/PbmcBench/Smart-Seq2,X10v2_pbmc1,PbmcBench,Smart-seq2 (SM2),10XV2
+Inter-dataset/PbmcBench/Smart-Seq2,X10v3_pbmc1,PbmcBench,Smart-seq2 (SM2),10XV3
+Inter-dataset/PbmcBench/Smart-Seq2,CL_pbmc1,PbmcBench,Smart-seq2 (SM2),CL
+Inter-dataset/PbmcBench/Smart-Seq2,DR_pbmc1,PbmcBench,Smart-seq2 (SM2),DR
+Inter-dataset/PbmcBench/Smart-Seq2,iD_pbmc1,PbmcBench,Smart-seq2 (SM2),iD
+Inter-dataset/PbmcBench/Smart-Seq2,SW_pbmc1,PbmcBench,Smart-seq2 (SM2),SW
+Inter-dataset/PbmcBench/Smart-Seq2,SM2_pbmc2,PbmcBench,Smart-seq2 (SM2),SM2
+Inter-dataset/PbmcBench/Seq-Well,SM2_pbmc1,PbmcBench,Seq-Well (SW),SM2
+Inter-dataset/PbmcBench/Seq-Well,X10v2_pbmc1,PbmcBench,Seq-Well (SW),10XV2
+Inter-dataset/PbmcBench/Seq-Well,X10v3_pbmc1,PbmcBench,Seq-Well (SW),10XV3
+Inter-dataset/PbmcBench/Seq-Well,CL_pbmc1,PbmcBench,Seq-Well (SW),CL
+Inter-dataset/PbmcBench/Seq-Well,DR_pbmc1,PbmcBench,Seq-Well (SW),DR
+Inter-dataset/PbmcBench/Seq-Well,iD_pbmc1,PbmcBench,Seq-Well (SW),iD
+Inter-dataset/PbmcBench/Seq-Well,SW_pbmc2,PbmcBench,Seq-Well (SW),SW
+Inter-dataset/Brain/MouseV1_MouseALM_3,MouseALM,Brain,VISp,ALM (Mouse)
+Inter-dataset/Brain/MouseALM_HumanMTG_3,MouseALM,Brain,MTG,ALM (Mouse)
+Inter-dataset/Brain/MouseV1_MouseALM_HumanMTG_3,MouseALM,Brain,VISp & MTG,ALM (Mouse)
+Inter-dataset/Brain/MouseV1_HumanMTG_3,HumanMTG,Brain,VISp,MTG (Human)
+Inter-dataset/Brain/MouseALM_HumanMTG_3,HumanMTG,Brain,ALM,MTG (Human)
+Inter-dataset/Brain/MouseV1_MouseALM_HumanMTG_3,HumanMTG,Brain,VISp & ALM,MTG (Human)
+Inter-dataset/Brain/MouseV1_MouseALM_3,MouseV1,Brain,ALM,VISp (Mouse)
+Inter-dataset/Brain/MouseV1_HumanMTG_3,MouseV1,Brain,MTG,VISp (Mouse)
+Inter-dataset/Brain/MouseV1_MouseALM_HumanMTG_3,MouseV1,Brain,ALM & MTG,VISp (Mouse)
+Inter-dataset/Brain/MouseV1_MouseALM_34,MouseALM,Brain (deep),VISp,ALM (Mouse)
+Inter-dataset/Brain/MouseALM_HumanMTG_34,MouseALM,Brain (deep),MTG,ALM (Mouse)
+Inter-dataset/Brain/MouseV1_MouseALM_HumanMTG_34,MouseALM,Brain (deep),VISp & MTG,ALM (Mouse)
+Inter-dataset/Brain/MouseV1_HumanMTG_34,HumanMTG,Brain (deep),VISp,MTG (Human)
+Inter-dataset/Brain/MouseALM_HumanMTG_34,HumanMTG,Brain (deep),ALM,MTG (Human)
+Inter-dataset/Brain/MouseV1_MouseALM_HumanMTG_34,HumanMTG,Brain (deep),VISp & ALM,MTG (Human)
+Inter-dataset/Brain/MouseV1_MouseALM_34,MouseV1,Brain (deep),ALM,VISp (Mouse)
+Inter-dataset/Brain/MouseV1_HumanMTG_34,MouseV1,Brain (deep),MTG,VISp (Mouse)
+Inter-dataset/Brain/MouseV1_MouseALM_HumanMTG_34,MouseV1,Brain (deep),ALM & MTG,VISp (Mouse)
+Inter-dataset/Pancreatic,Baron Human,Pancreas,Muraro & Segerstolpe & Xin,Baron Human
+Inter-dataset/Pancreatic,Muraro,Pancreas,Baron Human & Segerstolpe & Xin,Muraro
+Inter-dataset/Pancreatic,Segerstolpe,Pancreas,Baron Human & Muraro & Xin,Segerstolpe
+Inter-dataset/Pancreatic,Xin,Pancreas,Baron Human & Muraro & Segerstolpe,Xin
+Inter-dataset/CellBench,10x,CellBench,CEL-Seq2,10X
+Inter-dataset/CellBench,CelSeq2,CellBench,10X,CEL-Seq2
+Rejection/Unseen_populations,CD4+_or_CD45RO+_Memory,Unseen population,Rest,CD4+/CD45RO+ Memory T cells
+Rejection/Unseen_populations,CD4+_T_cells,Unseen population,Rest,CD4+ T cells
+Rejection/Unseen_populations,T_cells,Unseen population,Rest,T cells
+Rejection/Negative_controls/Human,Baron_Human,Human,Zheng 68K,Baron Human
+Rejection/Negative_controls/Human,Zheng,Human,Baron Human,Zheng 68K
+Rejection/Negative_controls/Mouse,Baron_Mouse,Mouse,AMB16,Baron Mouse
+Rejection/Negative_controls/Mouse,AMB16,Mouse,Baron Mouse,AMB16
