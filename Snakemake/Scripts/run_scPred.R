@@ -1,3 +1,5 @@
+args <- commandArgs(TRUE)
+
 run_scPred<-function(DataPath,LabelsPath,CV_RDataPath,OutputDir,GeneOrderPath = NULL,NumGenes = NULL){
   "
   run scPred
@@ -107,4 +109,9 @@ run_scPred<-function(DataPath,LabelsPath,CV_RDataPath,OutputDir,GeneOrderPath = 
     write.csv(Training_Time_scPred,'scPred_Training_Time.csv',row.names = FALSE)
     write.csv(Testing_Time_scPred,'scPred_Testing_Time.csv',row.names = FALSE)
   }
+}
+if (args[6] == "0") {
+  run_scPred(args[1], args[2], args[3], args[4])
+} else {
+  run_scPred(args[1], args[2], args[3], args[4], args[5], as.numeric(args[6]))
 }

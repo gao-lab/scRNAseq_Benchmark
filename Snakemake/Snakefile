@@ -1,3 +1,4 @@
+configfile: "config.yml"
 dockerTag = "latest" #FIXME tagged versions
 
 def feature_ranking(w):
@@ -13,10 +14,51 @@ One rule to... rule... them all...
 rule all:
   input:
     tool_outputs = expand(
-        "{output_dir}/evaluation/{measure}/{tool}.csv",
+        "{output_dir}/evaluation/{measure}/{tool}/{feature_numb}/",
         tool=config["tools_to_run"],
-        output_dir=config["output_dir"],
-        measure=["Confusion", "F1", "PopSize", "Summary"])
+        output_dir=config["Datasets"].keys(),
+        feature_numb=config["number_of_features"],
+        #input_dir=os.path.dirname(config["output_dir"]),
+        measure=["Confusion", "F1", "PopSize", "Summary"]),
+    result_summary_all="output/result_summary_all.csv",
+    figures="output/figures"
+
+
+rule plot:
+  input:
+    data="output/result_summary_all.csv",
+    script="scbench_figs.R"
+  output:
+    directory("output/figures")
+  shell:
+    "Rscript scbench_figs.R"
+
+
+"""
+Rule for integrating evaluation results to one file
+"""
+rule integrate:
+  input:
+    summary=expand("{output_dir}/evaluation/Summary/{tool}/{feature_numb}/",
+      tool=config["tools_to_run"],
+      output_dir=config["Datasets"].keys(),
+      feature_numb=config["number_of_features"])
+#    training_time=expand("{output_dir}/{tool}/{feature_numb}/{tool}_training_time.csv",
+#      tool=config["tools_to_run"],
+#      output_dir=config["Datasets"].keys(),
+#      feature_numb=config["number_of_features"])
+#    test_time=expand("{output_dir}/{tool}/{feature_numb}/{tool}_test_time.csv",
+#      tool=config["tools_to_run"],
+#      output_dir=config["Datasets"].keys(),
+#      feature_numb=config["number_of_features"])
+  output:
+    file="output/result_summary_all.csv"
+  log: "output/integrate.log"
+  threads:1
+  shell:
+    "Rscript integrate.R "
+    "{input.summary} "
+    "&> {log}"
 
 
 """
@@ -24,21 +66,29 @@ Rule for the result evaluation
 """
 rule evaluate:
   input:
-    true="{output_dir}/{tool}/{tool}_true.csv",
-    pred="{output_dir}/{tool}/{tool}_pred.csv"
+    true="{output_dir}/{tool}/{feature_numb}/{tool}_true.csv",
+    pred="{output_dir}/{tool}/{feature_numb}/{tool}_pred.csv",
+#    training_time="{output_dir}/{tool}/{feature_numb}/{tool}_training_time.csv",
+#    test_time="{output_dir}/{tool}/{feature_numb}/{tool}_test_time.csv",
+    labfile=lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"]
   output:
-    "{output_dir}/evaluation/Confusion/{tool}.csv",
-    "{output_dir}/evaluation/F1/{tool}.csv",
-    "{output_dir}/evaluation/PopSize/{tool}.csv",
-    "{output_dir}/evaluation/Summary/{tool}.csv",
-  log: "{output_dir}/evaluation/{tool}.log"
+    directory("{output_dir}/evaluation/Confusion/{tool}/{feature_numb}/"),
+    directory("{output_dir}/evaluation/F1/{tool}/{feature_numb}/"),
+    directory("{output_dir}/evaluation/PopSize/{tool}/{feature_numb}/"),
+    directory("{output_dir}/evaluation/Summary/{tool}/{feature_numb}/"),
+  log: "{output_dir}/evaluation/{tool}_{feature_numb}.log"
   singularity: "docker://scrnaseqbenchmark/baseline:{}".format(dockerTag)
+  threads:1
   shell:
     "Rscript evaluate.R "
     "{input.true} "
     "{input.pred} "
     "{wildcards.output_dir}/evaluation "
     "{wildcards.tool} "
+    "{wildcards.feature_numb} "
+    "{input.labfile} "
+#    "{input.training_time} "
+#    "{input.test_time} "
     "&> {log}"
 
 
@@ -46,18 +96,24 @@ rule evaluate:
 Rule for creating cross validation folds
 """
 rule generate_CV_folds:
-  input: config["labfile"],
+  input:
+    lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"]
   output: "{output_dir}/CV_folds.RData"
   log: "{output_dir}/CV_folds.log"
   params:
-    column = config.get("column", 1) # default to 1
+    column = lambda wildcards: config["Datasets"][wildcards.output_dir]["column"] # default to 1
   singularity: "docker://scrnaseqbenchmark/cross_validation:{}".format(dockerTag)
+  threads:1
   shell:
+    "if [ -f $(dirname {input})/*.RData ]; "
+    "then cp $(dirname {input})/*.RData {output}; "
+    "else "
     "Rscript Cross_Validation.R "
     "{input} "
     "{params.column} "
     "{wildcards.output_dir} "
-    "&> {log}"
+    "&> {log}; "
+    "fi;"
 
 
 """
@@ -65,11 +121,12 @@ Rule for creating feature rank lists
 """
 rule generate_dropouts_feature_rankings:
     input:
-        datafile = config["datafile"],
+        datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
         folds = "{output_dir}/CV_folds.RData"
     output: "{output_dir}/rank_genes_dropouts.csv"
     log: "{output_dir}/rank_genes_dropouts.log"
     singularity: "docker://scrnaseqbenchmark/baseline:{}".format(dockerTag)
+    threads:8
     shell:
         "echo test > {wildcards.output_dir}/test\n"
         "python3 rank_gene_dropouts.py "
@@ -78,175 +135,252 @@ rule generate_dropouts_feature_rankings:
         "{wildcards.output_dir} "
         "&> {log}"
 
+"""
+Rule for selecting seurat genes.
+"""
+rule select_seurat_genes:
+    input:
+        datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+        folds = "{output_dir}/CV_folds.RData"
+    output: "{output_dir}/seurat_gene0.csv"
+    log: "{output_dir}/select_seurat_genes.log"
+    singularity: "envs/cb-gpu.simg"
+    threads:1
+    shell:
+        "echo test > {wildcards.output_dir}/test\n"
+        "python3 select_seurat_genes.py "
+        "{input.datafile} "
+        "{input.folds} "
+        "{wildcards.output_dir} "
+        "&> {log}"
 
 """
 Rule for R based tools.
 """
 rule singleCellNet:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/singleCellNet/singleCellNet_pred.csv",
-    true = "{output_dir}/singleCellNet/singleCellNet_true.csv",
-    test_time = "{output_dir}/singleCellNet/singleCellNet_test_time.csv",
-    training_time = "{output_dir}/singleCellNet/singleCellNet_training_time.csv"
-  log: "{output_dir}/singleCellNet/singleCellNet.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/singleCellNet/{feature_numb}/singleCellNet_pred.csv",
+    true = "{output_dir}/singleCellNet/{feature_numb}/singleCellNet_true.csv",
+    test_time = "{output_dir}/singleCellNet/{feature_numb}/singleCellNet_test_time.csv",
+    training_time = "{output_dir}/singleCellNet/{feature_numb}/singleCellNet_training_time.csv"
+  log: "{output_dir}/singleCellNet/{feature_numb}/singleCellNet.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/singlecellnet:{}".format(dockerTag)
+  threads:8
   shell:
     "Rscript Scripts/run_singleCellNet.R "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/singleCellNet "
+    "{wildcards.output_dir}/singleCellNet/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
+    "&> {log}"
+
+rule scPred:
+  input:
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
+    folds = "{output_dir}/CV_folds.RData",
+    ranking = feature_ranking
+  output:
+    pred = "{output_dir}/scPred/{feature_numb}/scPred_pred.csv",
+    true = "{output_dir}/scPred/{feature_numb}/scPred_true.csv",
+    test_time = "{output_dir}/scPred/{feature_numb}/scPred_test_time.csv",
+    training_time = "{output_dir}/scPred/{feature_numb}/scPred_training_time.csv"
+  log: "{output_dir}/scPred/{feature_numb}/scPred.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
+  singularity: "docker://scrnaseqbenchmark/scpred:{}".format(dockerTag)
+  threads:1
+  shell:
+    "Rscript Scripts/run_scPred.R "
+    "{input.datafile} "
+    "{input.labfile} "
+    "{input.folds} "
+    "{wildcards.output_dir}/scPred/{wildcards.feature_numb} "
+    "{input.ranking} "
+    "{wildcards.feature_numb} "
+    "&> {log}"
+
+rule CaSTLe:
+  input:
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
+    folds = "{output_dir}/CV_folds.RData",
+    ranking = feature_ranking
+  output:
+    pred = "{output_dir}/CaSTLe/{feature_numb}/CaSTLe_pred.csv",
+    true = "{output_dir}/CaSTLe/{feature_numb}/CaSTLe_true.csv",
+    test_time = "{output_dir}/CaSTLe/{feature_numb}/CaSTLe_test_time.csv",
+    training_time = "{output_dir}/CaSTLe/{feature_numb}/CaSTLe_training_time.csv"
+  log: "{output_dir}/CaSTLe/{feature_numb}/CaSTLe.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
+  threads:1
+  singularity: "docker://scrnaseqbenchmark/castle:{}".format(dockerTag)
+  shell:
+    "Rscript Scripts/run_CaSTLe.R "
+    "{input.datafile} "
+    "{input.labfile} "
+    "{input.folds} "
+    "{wildcards.output_dir}/CaSTLe/{wildcards.feature_numb} "
+    "{input.ranking} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule scmapcell:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/scmapcell/scmapcell_pred.csv",
-    true = "{output_dir}/scmapcell/scmapcell_true.csv",
-    test_time = "{output_dir}/scmapcell/scmapcell_test_time.csv",
-    training_time = "{output_dir}/scmapcell/scmapcell_training_time.csv"
-  log: "{output_dir}/scmapcell/scmapcell.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/scmapcell/{feature_numb}/scmapcell_pred.csv",
+    true = "{output_dir}/scmapcell/{feature_numb}/scmapcell_true.csv",
+    test_time = "{output_dir}/scmapcell/{feature_numb}/scmapcell_test_time.csv",
+    training_time = "{output_dir}/scmapcell/{feature_numb}/scmapcell_training_time.csv"
+  log: "{output_dir}/scmapcell/{feature_numb}/scmapcell.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
+  threads:4
   singularity: "docker://scrnaseqbenchmark/scmap:{}".format(dockerTag)
   shell:
     "Rscript Scripts/run_scmapcell.R "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/scmapcell "
+    "{wildcards.output_dir}/scmapcell/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule scmapcluster:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/scmapcluster/scmapcluster_pred.csv",
-    true = "{output_dir}/scmapcluster/scmapcluster_true.csv",
-    test_time = "{output_dir}/scmapcluster/scmapcluster_test_time.csv",
-    training_time = "{output_dir}/scmapcluster/scmapcluster_training_time.csv"
-  log: "{output_dir}/scmapcluster/scmapcluster.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/scmapcluster/{feature_numb}/scmapcluster_pred.csv",
+    true = "{output_dir}/scmapcluster/{feature_numb}/scmapcluster_true.csv",
+    test_time = "{output_dir}/scmapcluster/{feature_numb}/scmapcluster_test_time.csv",
+    training_time = "{output_dir}/scmapcluster/{feature_numb}/scmapcluster_training_time.csv"
+  log: "{output_dir}/scmapcluster/{feature_numb}/scmapcluster.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/scmap:{}".format(dockerTag)
+  threads:4
   shell:
     "Rscript Scripts/run_scmapcluster.R "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/scmapcluster "
+    "{wildcards.output_dir}/scmapcluster/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule scID:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/scID/scID_pred.csv",
-    true = "{output_dir}/scID/scID_true.csv",
-    total_time = "{output_dir}/scID/scID_total_time.csv"
-  log: "{output_dir}/scID/scID.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/scID/{feature_numb}/scID_pred.csv",
+    true = "{output_dir}/scID/{feature_numb}/scID_true.csv",
+    total_time = "{output_dir}/scID/{feature_numb}/scID_total_time.csv"
+  log: "{output_dir}/scID/{feature_numb}/scID.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/scid:{}".format(dockerTag)
+  threads:8
   shell:
     "Rscript Scripts/run_scID.R "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/scID "
+    "{wildcards.output_dir}/scID/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule CHETAH:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/CHETAH/CHETAH_pred.csv",
-    true = "{output_dir}/CHETAH/CHETAH_true.csv",
-    total_time = "{output_dir}/CHETAH/CHETAH_total_time.csv"
-  log: "{output_dir}/CHETAH/CHETAH.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/CHETAH/{feature_numb}/CHETAH_pred.csv",
+    true = "{output_dir}/CHETAH/{feature_numb}/CHETAH_true.csv",
+    total_time = "{output_dir}/CHETAH/{feature_numb}/CHETAH_total_time.csv"
+  log: "{output_dir}/CHETAH/{feature_numb}/CHETAH.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/chetah:{}".format(dockerTag)
+  threads:4
   shell:
     "Rscript Scripts/run_CHETAH.R "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/CHETAH "
+    "{wildcards.output_dir}/CHETAH/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule SingleR:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/SingleR/SingleR_pred.csv",
-    true = "{output_dir}/SingleR/SingleR_true.csv",
-    total_time = "{output_dir}/SingleR/SingleR_total_time.csv"
-  log: "{output_dir}/SingleR/SingleR.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/SingleR/{feature_numb}/SingleR_pred.csv",
+    true = "{output_dir}/SingleR/{feature_numb}/SingleR_true.csv",
+    total_time = "{output_dir}/SingleR/{feature_numb}/SingleR_total_time.csv"
+  log: "{output_dir}/SingleR/{feature_numb}/SingleR.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/singler:{}".format(dockerTag)
+  threads:8
   shell:
     "Rscript Scripts/run_SingleR.R "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/SingleR "
+    "{wildcards.output_dir}/SingleR/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 #NOTE non-conformant to the rest of the rules.
 rule Garnett_CV:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     genes_names = config.get("genes", "UNSPECIFIEDFILE"),
     markers = config.get("Garnett_CV", {}).get(
         "markers", "UNSPECIFIEDFILE")
   output:
-    pred = "{output_dir}/Garnett_CV/Garnett_CV_pred.csv",
-    true = "{output_dir}/Garnett_CV/Garnett_CV_true.csv",
-    test_time = "{output_dir}/Garnett_CV/Garnett_CV_test_time.csv",
-    training_time = "{output_dir}/Garnett_CV/Garnett_CV_training_time.csv"
-  log: "{output_dir}/Garnett_CV/Garnett_CV.log"
-  params:
-    human = "T" if config.get("human", True) else "F"
+    pred = "{output_dir}/Garnett_CV/{feature_numb}/Garnett_CV_pred.csv",
+    true = "{output_dir}/Garnett_CV/{feature_numb}/Garnett_CV_true.csv",
+    test_time = "{output_dir}/Garnett_CV/{feature_numb}/Garnett_CV_test_time.csv",
+    training_time = "{output_dir}/Garnett_CV/{feature_numb}/Garnett_CV_training_time.csv"
+  log: "{output_dir}/Garnett_CV/{feature_numb}/Garnett_CV.log"
+#   params:
+#     human = "T" if config.get("human", True) else "F"
   singularity: "docker://scrnaseqbenchmark/garnett:{}".format(dockerTag)
+  threads:1
   shell:
     "Rscript Scripts/run_Garnett_CV.R "
     "{input.datafile} "
@@ -254,27 +388,28 @@ rule Garnett_CV:
     "{input.folds} "
     "{input.genes_names} "
     "{input.markers} "
-    "{wildcards.output_dir}/Garnett_CV "
-    "{params.human} "
+    "{wildcards.output_dir}/Garnett_CV/{wildcards.feature_numb} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 #NOTE non-conformant to the rest of the rules.
 rule Garnett_Pretrained: #TODO test this
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     genes_names = config.get("genes", "UNSPECIFIEDFILE"),
     classifier = config.get("Garnett_Pretrained", {}).get(
         "classifier", "UNSPECIFIEDFILE")
   output:
-    pred = "{output_dir}/Garnett_Pretrained/Garnett_Pretrained_pred.csv",
-    true = "{output_dir}/Garnett_Pretrained/Garnett_Pretrained_true.csv",
-    test_time = "{output_dir}/Garnett_Pretrained/Garnett_Pretrained_test_time.csv"
-  log: "{output_dir}/Garnett_Pretrained/Garnett_Pretrained.log"
-  params:
-    human = "T" if config.get("human", True) else "F"
+    pred = "{output_dir}/Garnett_Pretrained/{feature_numb}/Garnett_Pretrained_pred.csv",
+    true = "{output_dir}/Garnett_Pretrained/{feature_numb}/Garnett_Pretrained_true.csv",
+    test_time = "{output_dir}/Garnett_Pretrained/{feature_numb}/Garnett_Pretrained_test_time.csv"
+  log: "{output_dir}/Garnett_Pretrained/{feature_numb}/Garnett_Pretrained.log"
+#   params:
+#     human = "T" if config.get("human", True) else "F"
   singularity: "docker://scrnaseqbenchmark/garnett:{}".format(dockerTag)
+  threads:1
   shell:
     "Rscript Scripts/run_Garnett_Pretrained.R "
     "{input.datafile} "
@@ -282,8 +417,8 @@ rule Garnett_Pretrained: #TODO test this
     "{input.genes_names} "
     "{input.folds} "
     "{input.classifier} "
-    "{wildcards.output_dir}/Garnett_Pretrained "
-    "{params.human} "
+    "{wildcards.output_dir}/Garnett_Pretrained/{wildcards.feature_numb} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 
@@ -292,250 +427,367 @@ Rules for python based tools.
 """
 rule kNN50:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/kNN50/kNN50_pred.csv",
-    true = "{output_dir}/kNN50/kNN50_true.csv",
-    test_time = "{output_dir}/kNN50/kNN50_test_time.csv",
-    training_time = "{output_dir}/kNN50/kNN50_training_time.csv"
-  log: "{output_dir}/kNN50/kNN50.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/kNN50/{feature_numb}/kNN50_pred.csv",
+    true = "{output_dir}/kNN50/{feature_numb}/kNN50_true.csv",
+    test_time = "{output_dir}/kNN50/{feature_numb}/kNN50_test_time.csv",
+    training_time = "{output_dir}/kNN50/{feature_numb}/kNN50_training_time.csv"
+  log: "{output_dir}/kNN50/{feature_numb}/kNN50.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/baseline:{}".format(dockerTag)
+  threads:4
   shell:
     "python3 Scripts/run_kNN50.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/kNN50 "
+    "{wildcards.output_dir}/kNN50/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule kNN9:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/kNN9/kNN9_pred.csv",
-    true = "{output_dir}/kNN9/kNN9_true.csv",
-    test_time = "{output_dir}/kNN9/kNN9_test_time.csv",
-    training_time = "{output_dir}/kNN9/kNN9_training_time.csv"
-  log: "{output_dir}/kNN9/kNN9.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/kNN9/{feature_numb}/kNN9_pred.csv",
+    true = "{output_dir}/kNN9/{feature_numb}/kNN9_true.csv",
+    test_time = "{output_dir}/kNN9/{feature_numb}/kNN9_test_time.csv",
+    training_time = "{output_dir}/kNN9/{feature_numb}/kNN9_training_time.csv"
+  log: "{output_dir}/kNN9/{feature_numb}/kNN9.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/baseline:{}".format(dockerTag)
+  threads:4
   shell:
     "python3 Scripts/run_kNN9.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/kNN9 "
+    "{wildcards.output_dir}/kNN9/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule Cell_BLAST:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/Cell_BLAST/Cell_BLAST_pred.csv",
-    true = "{output_dir}/Cell_BLAST/Cell_BLAST_true.csv",
-    test_time = "{output_dir}/Cell_BLAST/Cell_BLAST_test_time.csv",
-    training_time = "{output_dir}/Cell_BLAST/Cell_BLAST_training_time.csv"
-  log: "{output_dir}/Cell_BLAST/Cell_BLAST.log"
-  params:
-    n_features = config.get("number_of_features", 0)
-  singularity: "docker://scrnaseqbenchmark/cell_blast:{}".format(dockerTag)
+    pred = "{output_dir}/Cell_BLAST/{feature_numb}/Cell_BLAST_pred.csv",
+    true = "{output_dir}/Cell_BLAST/{feature_numb}/Cell_BLAST_true.csv",
+    test_time = "{output_dir}/Cell_BLAST/{feature_numb}/Cell_BLAST_test_time.csv",
+    training_time = "{output_dir}/Cell_BLAST/{feature_numb}/Cell_BLAST_training_time.csv"
+  log: "{output_dir}/Cell_BLAST/{feature_numb}/Cell_BLAST.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
+    # singularity: "docker://scrnaseqbenchmark/cell_blast:{}".format(dockerTag)
+  singularity: "envs/cb-gpu.simg"
+  threads:8
   shell:
-    "python3 Scripts/run_Cell_BLAST.py "
+    "python Scripts/run_Cell_BLAST.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/Cell_BLAST "
+    "{wildcards.output_dir}/Cell_BLAST/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
+    "&> {log}"
+
+rule Cell_BLAST_seurat:
+  input:
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
+    folds = "{output_dir}/CV_folds.RData",
+    seurat_gene = "{output_dir}/seurat_gene0.csv"
+#    ranking = feature_ranking
+  output:
+    pred = "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat_pred.csv",
+    true = "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat_true.csv",
+    test_time = "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat_test_time.csv",
+    training_time = "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat_training_time.csv"
+  log: "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
+  singularity: "envs/cb-gpu.simg"
+  threads:8
+  shell:
+    "python Scripts/run_Cell_BLAST_seurat.py "
+    "{input.datafile} "
+    "{input.labfile} "
+    "{input.folds} "
+    "{wildcards.output_dir}/Cell_BLAST_seurat/{wildcards.feature_numb} "
+    "{wildcards.output_dir} "
+    "{wildcards.feature_numb} "
+    "F "
+    "&> {log}"
+
+rule Cell_BLAST_seurat_aligned:
+  input:
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
+    folds = "{output_dir}/CV_folds.RData",
+    seurat_gene = "{output_dir}/seurat_gene0.csv"
+#    ranking = feature_ranking
+  output:
+    pred = "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned_pred.csv",
+    true = "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned_true.csv",
+    test_time = "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned_test_time.csv",
+    training_time = "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned_training_time.csv"
+  log: "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
+  singularity: "envs/cb-gpu.simg"
+  threads:8
+  shell:
+    "python Scripts/run_Cell_BLAST_seurat.py "
+    "{input.datafile} "
+    "{input.labfile} "
+    "{input.folds} "
+    "{wildcards.output_dir}/Cell_BLAST_seurat_aligned/{wildcards.feature_numb} "
+    "{wildcards.output_dir} "
+    "{wildcards.feature_numb} "
+    "T "
     "&> {log}"
 
 rule scVI:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/scVI/scVI_pred.csv",
-    true = "{output_dir}/scVI/scVI_true.csv",
-    test_time = "{output_dir}/scVI/scVI_test_time.csv",
-    training_time = "{output_dir}/scVI/scVI_training_time.csv"
-  log: "{output_dir}/scVI/scVI.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/scVI/{feature_numb}/scVI_pred.csv",
+    true = "{output_dir}/scVI/{feature_numb}/scVI_true.csv",
+    test_time = "{output_dir}/scVI/{feature_numb}/scVI_test_time.csv",
+    training_time = "{output_dir}/scVI/{feature_numb}/scVI_training_time.csv"
+  log: "{output_dir}/scVI/{feature_numb}/scVI.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/scvi:{}".format(dockerTag)
+  threads: 8
   shell:
     "python3 Scripts/run_scVI.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/scVI "
+    "{wildcards.output_dir}/scVI/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule LDA:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/LDA/LDA_pred.csv",
-    true = "{output_dir}/LDA/LDA_true.csv",
-    test_time = "{output_dir}/LDA/LDA_test_time.csv",
-    training_time = "{output_dir}/LDA/LDA_training_time.csv"
-  log: "{output_dir}/LDA/LDA.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/LDA/{feature_numb}/LDA_pred.csv",
+    true = "{output_dir}/LDA/{feature_numb}/LDA_true.csv",
+    test_time = "{output_dir}/LDA/{feature_numb}/LDA_test_time.csv",
+    training_time = "{output_dir}/LDA/{feature_numb}/LDA_training_time.csv"
+  log: "{output_dir}/LDA/{feature_numb}/LDA.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/baseline:{}".format(dockerTag)
+  threads:8
   shell:
     "python3 Scripts/run_LDA.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/LDA "
+    "{wildcards.output_dir}/LDA/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule LDA_rejection:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/LDA_rejection/LDA_rejection_pred.csv",
-    true = "{output_dir}/LDA_rejection/LDA_rejection_true.csv",
-    test_time = "{output_dir}/LDA_rejection/LDA_rejection_test_time.csv",
-    training_time = "{output_dir}/LDA_rejection/LDA_rejection_training_time.csv"
-  log: "{output_dir}/LDA_rejection/LDA_rejection.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/LDA_rejection/{feature_numb}/LDA_rejection_pred.csv",
+    true = "{output_dir}/LDA_rejection/{feature_numb}/LDA_rejection_true.csv",
+    test_time = "{output_dir}/LDA_rejection/{feature_numb}/LDA_rejection_test_time.csv",
+    training_time = "{output_dir}/LDA_rejection/{feature_numb}/LDA_rejection_training_time.csv"
+  log: "{output_dir}/LDA_rejection/{feature_numb}/LDA_rejection.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/baseline:{}".format(dockerTag)
+  threads:8
   shell:
     "python3 Scripts/run_LDA_rejection.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/LDA_rejection "
+    "{wildcards.output_dir}/LDA_rejection/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule NMC:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/NMC/NMC_pred.csv",
-    true = "{output_dir}/NMC/NMC_true.csv",
-    test_time = "{output_dir}/NMC/NMC_test_time.csv",
-    training_time = "{output_dir}/NMC/NMC_training_time.csv"
-  log: "{output_dir}/NMC/NMC.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/NMC/{feature_numb}/NMC_pred.csv",
+    true = "{output_dir}/NMC/{feature_numb}/NMC_true.csv",
+    test_time = "{output_dir}/NMC/{feature_numb}/NMC_test_time.csv",
+    training_time = "{output_dir}/NMC/{feature_numb}/NMC_training_time.csv"
+  log: "{output_dir}/NMC/{feature_numb}/NMC.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/baseline:{}".format(dockerTag)
+  threads:4
   shell:
     "python3 Scripts/run_NMC.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/NMC "
+    "{wildcards.output_dir}/NMC/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule RF:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/RF/RF_pred.csv",
-    true = "{output_dir}/RF/RF_true.csv",
-    test_time = "{output_dir}/RF/RF_test_time.csv",
-    training_time = "{output_dir}/RF/RF_training_time.csv"
-  log: "{output_dir}/RF/RF.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/RF/{feature_numb}/RF_pred.csv",
+    true = "{output_dir}/RF/{feature_numb}/RF_true.csv",
+    test_time = "{output_dir}/RF/{feature_numb}/RF_test_time.csv",
+    training_time = "{output_dir}/RF/{feature_numb}/RF_training_time.csv"
+  log: "{output_dir}/RF/{feature_numb}/RF.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/baseline:{}".format(dockerTag)
+  threads:4
   shell:
     "python3 Scripts/run_RF.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/RF "
+    "{wildcards.output_dir}/RF/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule SVM:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/SVM/SVM_pred.csv",
-    true = "{output_dir}/SVM/SVM_true.csv",
-    test_time = "{output_dir}/SVM/SVM_test_time.csv",
-    training_time = "{output_dir}/SVM/SVM_training_time.csv"
-  log: "{output_dir}/SVM/SVM.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/SVM/{feature_numb}/SVM_pred.csv",
+    true = "{output_dir}/SVM/{feature_numb}/SVM_true.csv",
+    test_time = "{output_dir}/SVM/{feature_numb}/SVM_test_time.csv",
+    training_time = "{output_dir}/SVM/{feature_numb}/SVM_training_time.csv"
+  log: "{output_dir}/SVM/{feature_numb}/SVM.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/baseline:{}".format(dockerTag)
+  threads:8
   shell:
     "python3 Scripts/run_SVM.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/SVM "
+    "{wildcards.output_dir}/SVM/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
     "&> {log}"
 
 rule SVM_rejection:
   input:
-    datafile = config["datafile"],
-    labfile = config["labfile"],
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
     ranking = feature_ranking
   output:
-    pred = "{output_dir}/SVM_rejection/SVM_rejection_pred.csv",
-    true = "{output_dir}/SVM_rejection/SVM_rejection_true.csv",
-    test_time = "{output_dir}/SVM_rejection/SVM_rejection_test_time.csv",
-    training_time = "{output_dir}/SVM_rejection/SVM_rejection_training_time.csv"
-  log: "{output_dir}/SVM_rejection/SVM_rejection.log"
-  params:
-    n_features = config.get("number_of_features", 0)
+    pred = "{output_dir}/SVM_rejection/{feature_numb}/SVM_rejection_pred.csv",
+    true = "{output_dir}/SVM_rejection/{feature_numb}/SVM_rejection_true.csv",
+    test_time = "{output_dir}/SVM_rejection/{feature_numb}/SVM_rejection_test_time.csv",
+    training_time = "{output_dir}/SVM_rejection/{feature_numb}/SVM_rejection_training_time.csv"
+  log: "{output_dir}/SVM_rejection/{feature_numb}/SVM_rejection.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
   singularity: "docker://scrnaseqbenchmark/baseline:{}".format(dockerTag)
+  threads:8
   shell:
     "python3 Scripts/run_SVM_rejection.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
-    "{wildcards.output_dir}/SVM_rejection "
+    "{wildcards.output_dir}/SVM_rejection/{wildcards.feature_numb} "
     "{input.ranking} "
-    "{params.n_features} "
+    "{wildcards.feature_numb} "
+    "&> {log}"
+
+rule ACTINN:
+  input:
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
+    folds = "{output_dir}/CV_folds.RData",
+    ranking = feature_ranking
+  output:
+    pred = "{output_dir}/ACTINN/{feature_numb}/ACTINN_pred.csv",
+    true = "{output_dir}/ACTINN/{feature_numb}/ACTINN_true.csv",
+    test_time = "{output_dir}/ACTINN/{feature_numb}/ACTINN_test_time.csv",
+    training_time = "{output_dir}/ACTINN/{feature_numb}/ACTINN_training_time.csv"
+  log: "{output_dir}/ACTINN/{feature_numb}/ACTINN.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
+  singularity: "docker://scrnaseqbenchmark/ACTINN:{}".format(dockerTag)
+  shell:
+    "python Scripts/run_ACTINN.py "
+    "{input.datafile} "
+    "{input.labfile} "
+    "{input.folds} "
+    "{wildcards.output_dir}/ACTINN/{wildcards.feature_numb} "
+    "{input.ranking} "
+    "{wildcards.feature_numb} "
+    "&> {log}"
+
+rule LAmbDA:
+  input:
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
+    folds = "{output_dir}/CV_folds.RData",
+    ranking = feature_ranking
+  output:
+    pred = "{output_dir}/LAmbDA/{feature_numb}/LAmbDA_pred.csv",
+    true = "{output_dir}/LAmbDA/{feature_numb}/LAmbDA_true.csv",
+    test_time = "{output_dir}/LAmbDA/{feature_numb}/LAmbDA_test_time.csv",
+    training_time = "{output_dir}/LAmbDA/{feature_numb}/LAmbDA_training_time.csv"
+  log: "{output_dir}/LAmbDA/{feature_numb}/LAmbDA.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
+  singularity: "docker://scrnaseqbenchmark/LAmbDA:{}".format(dockerTag)
+  shell:
+    "python Scripts/run_LAmbDA.py "
+    "{input.datafile} "
+    "{input.labfile} "
+    "{input.folds} "
+    "{wildcards.output_dir}/LAmbDA/{wildcards.feature_numb} "
+    "{input.ranking} "
+    "{wildcards.feature_numb} "
     "&> {log}"

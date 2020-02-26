@@ -1,0 +1,10 @@
+input
+output
+envs
+.nv
+.keras
+.ipynb_checkpoints
+.snakemake
+.cache
+*.bak
+*.pyc
