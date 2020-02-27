@@ -84,9 +84,9 @@ Inter-dataset/Pancreatic,Segerstolpe,Pancreas,Baron Human & Muraro & Xin,Segerst
 Inter-dataset/Pancreatic,Xin,Pancreas,Baron Human & Muraro & Segerstolpe,Xin
 Inter-dataset/CellBench,10x,CellBench,CEL-Seq2,10X
 Inter-dataset/CellBench,CelSeq2,CellBench,10X,CEL-Seq2
-Rejection/Unseen_populations,CD4+_or_CD45RO+_Memory,Unseen population,Rest,CD4+/CD45RO+ Memory T cells
-Rejection/Unseen_populations,CD4+_T_cells,Unseen population,Rest,CD4+ T cells
 Rejection/Unseen_populations,T_cells,Unseen population,Rest,T cells
+Rejection/Unseen_populations,CD4+_T_cells,Unseen population,Rest,CD4+ T cells
+Rejection/Unseen_populations,CD4+_or_CD45RO+_Memory,Unseen population,Rest,CD4+/CD45RO+ Memory T cells
 Rejection/Negative_controls/Human,Baron_Human,Human,Zheng 68K,Baron Human
 Rejection/Negative_controls/Human,Zheng,Human,Baron Human,Zheng 68K
 Rejection/Negative_controls/Mouse,Baron_Mouse,Mouse,AMB16,Baron Mouse
