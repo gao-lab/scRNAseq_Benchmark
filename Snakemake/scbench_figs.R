@@ -108,34 +108,42 @@ ggsave(file.path(path, "scbench_Inter_CellBench_PercUnl.pdf"), stylize_heatmap(g
 message("Plotting Inter-dataset Brain...")
 inter_brain_df <- df %>% filter(Data_type == "Inter-dataset", Group == "Brain", feature == "0")
 gp <- ggplot(inter_brain_df, aes(
-  x = Train, y = Tool, fill = MedF1, label = round(MedF1, 2), col = MedF1 < 0.5
+  x = Train.Test, y = Tool, fill = MedF1, label = round(MedF1, 2), col = MedF1 < 0.5
 )) + geom_tile() + geom_text() + facet_grid(~ Test) + scale_fill_viridis(
   name = "Median F1-score", limits = c(0, 1)
-) + scale_x_discrete(name = "Training set") + ggtitle("Test set")
+) + scale_x_discrete(
+  name = "Training set", breaks = inter_brain_df$Train.Test, labels = inter_brain_df$Train
+) + ggtitle("Test set")
 ggsave(file.path(path, "scbench_Inter_Brain_MedF1.pdf"), stylize_heatmap(gp), height = 3.2, width = 7)
 
 gp <- ggplot(inter_brain_df, aes(
-  x = Train, y = Tool, fill = PercUnl, label = round(PercUnl, 1), col = PercUnl < 50
+  x = Train.Test, y = Tool, fill = PercUnl, label = round(PercUnl, 1), col = PercUnl < 50
 )) + geom_tile() + geom_text() + facet_grid(~ Test) + scale_fill_viridis(
   name = "Unlabeled (%)", limits = c(0, 100)
-) + scale_x_discrete(name = "Training set") + ggtitle("Test set")
+) + scale_x_discrete(
+  name = "Training set", breaks = inter_brain_df$Train.Test, labels = inter_brain_df$Train
+) + ggtitle("Test set")
 ggsave(file.path(path, "scbench_Inter_Brain_PercUnl.pdf"), stylize_heatmap(gp), height = 3.2, width = 7)
 
 
 message("Plotting Inter-dataset Brain (deep)...")
 inter_brain_deep_df <- df %>% filter(Data_type == "Inter-dataset", Group == "Brain (deep)", feature == "0")
 gp <- ggplot(inter_brain_deep_df, aes(
-  x = Train, y = Tool, fill = MedF1, label = round(MedF1, 2), col = MedF1 < 0.5
+  x = Train.Test, y = Tool, fill = MedF1, label = round(MedF1, 2), col = MedF1 < 0.5
 )) + geom_tile() + geom_text() + facet_grid(~ Test) + scale_fill_viridis(
   name = "Median F1-score", limits = c(0, 1)
-) + scale_x_discrete(name = "Training set") + ggtitle("Test set")
+) + scale_x_discrete(
+  name = "Training set", breaks = inter_brain_deep_df$Train.Test, labels = inter_brain_deep_df$Train
+) + ggtitle("Test set")
 ggsave(file.path(path, "scbench_Inter_Brain_deep_MedF1.pdf"), stylize_heatmap(gp), height = 3.2, width = 7)
 
 gp <- ggplot(inter_brain_deep_df, aes(
-  x = Train, y = Tool, fill = PercUnl, label = round(PercUnl, 1), col = PercUnl < 50
+  x = Train.Test, y = Tool, fill = PercUnl, label = round(PercUnl, 1), col = PercUnl < 50
 )) + geom_tile() + geom_text() + facet_grid(~ Test) + scale_fill_viridis(
   name = "Unlabeled (%)", limits = c(0, 100)
-) + scale_x_discrete(name = "Training set") + ggtitle("Test set")
+) + scale_x_discrete(
+  name = "Training set", breaks = inter_brain_deep_df$Train.Test, labels = inter_brain_deep_df$Train
+) + ggtitle("Test set")
 ggsave(file.path(path, "scbench_Inter_Brain_deep_PercUnl.pdf"), stylize_heatmap(gp), height = 3.2, width = 7)
 
 
