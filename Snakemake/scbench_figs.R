@@ -14,7 +14,7 @@ message("Preparing...")
 path <- "output/figures"
 if (! dir.exists(path)) dir.create(path, recursive = TRUE)
 
-name_mapping <- read.csv(
+experiment_name_mapping <- read.csv(
   "experiment_name_mapping.csv", stringsAsFactors = FALSE
 ) %>% mutate(
   Train.Test = paste(Train, Test, sep = " - ")
@@ -24,10 +24,11 @@ name_mapping <- read.csv(
   Test = factor(Test, levels = Test[!duplicated(Test)]),
   Train.Test = factor(Train.Test, levels = Train.Test[!duplicated(Train.Test)])
 )  # Order in the mapping table would be used to determine order in plots
-df <- merge(
-  read.csv("output/result_summary_all.csv", stringsAsFactors = FALSE),
-  name_mapping, all.x = TRUE
-) %>% mutate(PercUnl = PercUnl * 100)
+method_name_mapping <- read.csv("method_name_mapping.csv", stringsAsFactors = FALSE)
+df <- read.csv("output/result_summary_all.csv", stringsAsFactors = FALSE) %>%
+  merge(experiment_name_mapping, all.x = TRUE) %>%
+  merge(method_name_mapping, all.x = TRUE) %>%
+  mutate(PercUnl = PercUnl * 100, Tool = Display.Name)
 
 geom_tile <- function(...) ggplot2::geom_tile(..., col = "white", size = 0.3)
 facet_grid <- function(...) ggplot2::facet_grid(..., scales = "free_x", space = "free_x")

@@ -27,7 +27,9 @@ rule all:
 rule plot:
   input:
     data="output/result_summary_all.csv",
-    script="scbench_figs.R"
+    script="scbench_figs.R",
+    exp_map="experiment_name_mapping.csv",
+    method_map="method_name_mapping.csv"
   output:
     directory("output/figures")
   shell:
