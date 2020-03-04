@@ -42,8 +42,14 @@ run_singleCellNet<-function(DataPath,LabelsPath,CV_RDataPath,OutputDir,GeneOrder
 
   for(i in c(1:n_folds)){
     if(!is.null(GeneOrderPath) & !is.null (NumGenes)){
-      DataTrain <- Data[as.vector(GenesOrder[c(1:NumGenes),i])+1,Train_Idx[[i]]]
-      DataTest <- Data[as.vector(GenesOrder[c(1:NumGenes),i])+1,Test_Idx[[i]]]
+      if (NumGenes > 0) {
+        feat_to_use <- as.vector(GenesOrder[c(1:NumGenes),i])+1
+      } else {
+        feat_to_use <- as.vector(GenesOrder[,i])+1
+      }
+      feat_to_use <- feat_to_use[!is.na(feat_to_use)]
+      DataTrain <- Data[feat_to_use,Train_Idx[[i]]]
+      DataTest <- Data[feat_to_use,Test_Idx[[i]]]
     }
     else{
       DataTrain <- Data[,Train_Idx[[i]]]
@@ -70,18 +76,18 @@ run_singleCellNet<-function(DataPath,LabelsPath,CV_RDataPath,OutputDir,GeneOrder
     True_Labels_singleCellNet[i] <- list(Labels[Test_Idx[[i]]])
     Pred_Labels_singleCellNet[i] <- list((rownames(classRes)[apply(classRes,2,which.max)])[1:length(Test_Idx[[i]])])
   }
+  method_name <- 'singleCellNet'
+  if (grepl('seurat_gene', GeneOrderPath)) {
+    method_name <- paste(method_name, 'seurat', sep = '_')
+  }
   True_Labels_singleCellNet <- as.vector(unlist(True_Labels_singleCellNet))
   Pred_Labels_singleCellNet <- as.vector(unlist(Pred_Labels_singleCellNet))
   Training_Time_singleCellNet <- as.vector(unlist(Training_Time_singleCellNet))
   Testing_Time_singleCellNet <- as.vector(unlist(Testing_Time_singleCellNet))
-  write.csv(True_Labels_singleCellNet,paste0(OutputDir,'/singleCellNet_true.csv'),row.names = FALSE)
-  write.csv(Pred_Labels_singleCellNet,paste0(OutputDir,'/singleCellNet_pred.csv'),row.names = FALSE)
-  write.csv(Training_Time_singleCellNet,paste0(OutputDir,'/singleCellNet_training_time.csv'),row.names = FALSE)
-  write.csv(Testing_Time_singleCellNet,paste0(OutputDir,'/singleCellNet_test_time.csv'),row.names = FALSE)
+  write.csv(True_Labels_singleCellNet,paste0(OutputDir,'/',method_name,'_true.csv'),row.names = FALSE)
+  write.csv(Pred_Labels_singleCellNet,paste0(OutputDir,'/',method_name,'_pred.csv'),row.names = FALSE)
+  write.csv(Training_Time_singleCellNet,paste0(OutputDir,'/',method_name,'_training_time.csv'),row.names = FALSE)
+  write.csv(Testing_Time_singleCellNet,paste0(OutputDir,'/',method_name,'_test_time.csv'),row.names = FALSE)
 }
 
-if (args[6] == "0") {
-  run_singleCellNet(args[1], args[2], args[3], args[4])
-} else {
-  run_singleCellNet(args[1], args[2], args[3], args[4], args[5], as.numeric(args[6]))
-}
+run_singleCellNet(args[1], args[2], args[3], args[4], args[5], as.numeric(args[6]))

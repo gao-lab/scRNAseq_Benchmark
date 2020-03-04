@@ -144,7 +144,9 @@ rule select_seurat_genes:
     input:
         datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
         folds = "{output_dir}/CV_folds.RData"
-    output: "{output_dir}/seurat_gene0.csv"
+    output:
+        "{output_dir}/seurat_gene_name.csv",
+        "{output_dir}/seurat_gene_idx.csv"
     log: "{output_dir}/select_seurat_genes.log"
     singularity: "envs/cb-gpu.simg"
     threads:1
@@ -181,6 +183,32 @@ rule singleCellNet:
     "{input.labfile} "
     "{input.folds} "
     "{wildcards.output_dir}/singleCellNet/{wildcards.feature_numb} "
+    "{input.ranking} "
+    "{wildcards.feature_numb} "
+    "&> {log}"
+
+rule singleCellNet_seurat:
+  input:
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
+    folds = "{output_dir}/CV_folds.RData",
+    ranking = "{output_dir}/seurat_gene_idx.csv"
+  output:
+    pred = "{output_dir}/singleCellNet_seurat/{feature_numb}/singleCellNet_seurat_pred.csv",
+    true = "{output_dir}/singleCellNet_seurat/{feature_numb}/singleCellNet_seurat_true.csv",
+    test_time = "{output_dir}/singleCellNet_seurat/{feature_numb}/singleCellNet_seurat_test_time.csv",
+    training_time = "{output_dir}/singleCellNet_seurat/{feature_numb}/singleCellNet_seurat_training_time.csv"
+  log: "{output_dir}/singleCellNet_seurat/{feature_numb}/singleCellNet_seurat.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
+  singularity: "docker://scrnaseqbenchmark/singlecellnet:{}".format(dockerTag)
+  threads:8
+  shell:
+    "Rscript Scripts/run_singleCellNet.R "
+    "{input.datafile} "
+    "{input.labfile} "
+    "{input.folds} "
+    "{wildcards.output_dir}/singleCellNet_seurat/{wildcards.feature_numb} "
     "{input.ranking} "
     "{wildcards.feature_numb} "
     "&> {log}"
@@ -364,6 +392,31 @@ rule SingleR:
     "{wildcards.feature_numb} "
     "&> {log}"
 
+rule SingleR_seurat:
+  input:
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
+    folds = "{output_dir}/CV_folds.RData",
+    ranking = "{output_dir}/seurat_gene_idx.csv"
+  output:
+    pred = "{output_dir}/SingleR_seurat/{feature_numb}/SingleR_seurat_pred.csv",
+    true = "{output_dir}/SingleR_seurat/{feature_numb}/SingleR_seurat_true.csv",
+    total_time = "{output_dir}/SingleR_seurat/{feature_numb}/SingleR_seurat_total_time.csv"
+  log: "{output_dir}/SingleR_seurat/{feature_numb}/SingleR_seurat.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
+  singularity: "docker://scrnaseqbenchmark/singler:{}".format(dockerTag)
+  threads:8
+  shell:
+    "Rscript Scripts/run_SingleR.R "
+    "{input.datafile} "
+    "{input.labfile} "
+    "{input.folds} "
+    "{wildcards.output_dir}/SingleR_seurat/{wildcards.feature_numb} "
+    "{input.ranking} "
+    "{wildcards.feature_numb} "
+    "&> {log}"
+
 #NOTE non-conformant to the rest of the rules.
 rule Garnett_CV:
   input:
@@ -504,6 +557,7 @@ rule Cell_BLAST:
     "{wildcards.output_dir}/Cell_BLAST/{wildcards.feature_numb} "
     "{input.ranking} "
     "{wildcards.feature_numb} "
+    "F "
     "&> {log}"
 
 rule Cell_BLAST_seurat:
@@ -511,25 +565,22 @@ rule Cell_BLAST_seurat:
     datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
     labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
-    seurat_gene = "{output_dir}/seurat_gene0.csv"
-#    ranking = feature_ranking
+    ranking = "{output_dir}/seurat_gene_name.csv"
   output:
     pred = "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat_pred.csv",
     true = "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat_true.csv",
     test_time = "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat_test_time.csv",
     training_time = "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat_training_time.csv"
   log: "{output_dir}/Cell_BLAST_seurat/{feature_numb}/Cell_BLAST_seurat.log"
-#  params:
-#    n_features = config.get("number_of_features", 0)
   singularity: "envs/cb-gpu.simg"
   threads:8
   shell:
-    "python Scripts/run_Cell_BLAST_seurat.py "
+    "python Scripts/run_Cell_BLAST.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
     "{wildcards.output_dir}/Cell_BLAST_seurat/{wildcards.feature_numb} "
-    "{wildcards.output_dir} "
+    "{input.ranking} "
     "{wildcards.feature_numb} "
     "F "
     "&> {log}"
@@ -539,25 +590,22 @@ rule Cell_BLAST_seurat_aligned:
     datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
     labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
     folds = "{output_dir}/CV_folds.RData",
-    seurat_gene = "{output_dir}/seurat_gene0.csv"
-#    ranking = feature_ranking
+    ranking = "{output_dir}/seurat_gene_name.csv"
   output:
     pred = "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned_pred.csv",
     true = "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned_true.csv",
     test_time = "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned_test_time.csv",
     training_time = "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned_training_time.csv"
   log: "{output_dir}/Cell_BLAST_seurat_aligned/{feature_numb}/Cell_BLAST_seurat_aligned.log"
-#  params:
-#    n_features = config.get("number_of_features", 0)
   singularity: "envs/cb-gpu.simg"
   threads:8
   shell:
-    "python Scripts/run_Cell_BLAST_seurat.py "
+    "python Scripts/run_Cell_BLAST.py "
     "{input.datafile} "
     "{input.labfile} "
     "{input.folds} "
     "{wildcards.output_dir}/Cell_BLAST_seurat_aligned/{wildcards.feature_numb} "
-    "{wildcards.output_dir} "
+    "{input.ranking} "
     "{wildcards.feature_numb} "
     "T "
     "&> {log}"
@@ -718,6 +766,32 @@ rule SVM:
     "{wildcards.feature_numb} "
     "&> {log}"
 
+rule SVM_seurat:
+  input:
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
+    folds = "{output_dir}/CV_folds.RData",
+    ranking = "{output_dir}/seurat_gene_idx.csv"
+  output:
+    pred = "{output_dir}/SVM_seurat/{feature_numb}/SVM_seurat_pred.csv",
+    true = "{output_dir}/SVM_seurat/{feature_numb}/SVM_seurat_true.csv",
+    test_time = "{output_dir}/SVM_seurat/{feature_numb}/SVM_seurat_test_time.csv",
+    training_time = "{output_dir}/SVM_seurat/{feature_numb}/SVM_seurat_training_time.csv"
+  log: "{output_dir}/SVM_seurat/{feature_numb}/SVM_seurat.log"
+#  params:
+#    n_features = config.get("number_of_features", 0)
+  singularity: "docker://scrnaseqbenchmark/baseline:{}".format(dockerTag)
+  threads:8
+  shell:
+    "python3 Scripts/run_SVM.py "
+    "{input.datafile} "
+    "{input.labfile} "
+    "{input.folds} "
+    "{wildcards.output_dir}/SVM_seurat/{wildcards.feature_numb} "
+    "{input.ranking} "
+    "{wildcards.feature_numb} "
+    "&> {log}"
+
 rule SVM_rejection:
   input:
     datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
@@ -740,6 +814,32 @@ rule SVM_rejection:
     "{input.labfile} "
     "{input.folds} "
     "{wildcards.output_dir}/SVM_rejection/{wildcards.feature_numb} "
+    "{input.ranking} "
+    "{wildcards.feature_numb} "
+    "&> {log}"
+
+rule SVM_rejection_seurat:
+  input:
+    datafile = lambda wildcards: config["Datasets"][wildcards.output_dir]["datafile"],
+    labfile = lambda wildcards: config["Datasets"][wildcards.output_dir]["labfile"],
+    folds = "{output_dir}/CV_folds.RData",
+    ranking = "{output_dir}/seurat_gene_idx.csv"
+  output:
+    pred = "{output_dir}/SVM_rejection_seurat/{feature_numb}/SVM_rejection_seurat_pred.csv",
+    true = "{output_dir}/SVM_rejection_seurat/{feature_numb}/SVM_rejection_seurat_true.csv",
+    test_time = "{output_dir}/SVM_rejection_seurat/{feature_numb}/SVM_rejection_seurat_test_time.csv",
+    training_time = "{output_dir}/SVM_rejection_seurat/{feature_numb}/SVM_rejection_seurat_training_time.csv"
+  log: "{output_dir}/SVM_rejection_seurat/{feature_numb}/SVM_rejection_seurat.log"
+#   params:
+#     n_features = config.get("number_of_features", 0)
+  singularity: "docker://scrnaseqbenchmark/baseline:{}".format(dockerTag)
+  threads:8
+  shell:
+    "python3 Scripts/run_SVM_rejection.py "
+    "{input.datafile} "
+    "{input.labfile} "
+    "{input.folds} "
+    "{wildcards.output_dir}/SVM_rejection_seurat/{wildcards.feature_numb} "
     "{input.ranking} "
     "{wildcards.feature_numb} "
     "&> {log}"

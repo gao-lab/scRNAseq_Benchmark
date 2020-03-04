@@ -161,6 +161,11 @@ number_of_features:
 tools_to_run:
   - Cell_BLAST_seurat
   - Cell_BLAST_seurat_aligned
+  # - SVM_seurat
+  # - SVM_rejection_seurat
+  # - singleCellNet_seurat
+  # - SingleR_seurat
+
   # - SVM
   # - SVM_rejection
   # - singleCellNet

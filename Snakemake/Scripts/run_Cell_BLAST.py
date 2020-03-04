@@ -16,7 +16,7 @@ import rpy2.robjects as robjects
 import utils
 os.environ["CUDA_VISIBLE_DEVICES"] = utils.pick_gpu_lowest_memory()
 
-def run_Cell_BLAST(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath = "", NumGenes = 0):
+def run_Cell_BLAST(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath = "", NumGenes = 0, aligned = "F"):
     '''
     run Cell_BLAST
     Wrapper script to run Cell_BLAST on a benchmark dataset with 5-fold cross validation,
@@ -45,8 +45,8 @@ def run_Cell_BLAST(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath 
     train_ind = np.array(robjects.r['Train_Idx'])
 
     # read the feature file
-    if (NumGenes > 0):
-        features = pd.read_csv(GeneOrderPath,header=0,index_col=None, sep=',')
+    # if (NumGenes > 0):
+    features = pd.read_csv(GeneOrderPath,header=0,index_col=None, sep=',')
 
     # read the data and labels
     data_old = cb.data.ExprDataSet.read_table(DataPath,orientation="cg", sep=",", index_col = 0, header = 0, sparsify = True)
@@ -63,7 +63,6 @@ def run_Cell_BLAST(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath 
     ts_time = []
 
     for i in range(np.squeeze(nfolds)):
-        test_ind_i = np.array(test_ind[i], dtype = 'int') - 1
         train_ind_i = np.array(train_ind[i], dtype = 'int') - 1
 
         train=data[train_ind_i,:]
@@ -71,9 +70,9 @@ def run_Cell_BLAST(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath 
 
 
         if (NumGenes > 0):
-            feat_to_use = features.iloc[0:NumGenes,i]
+            feat_to_use = features.iloc[0:NumGenes,i].dropna()
         else:
-            feat_to_use = None
+            feat_to_use = features.iloc[:, i].dropna()
 
 #             train = train[:,feat_to_use]
 #             test = test[:,feat_to_use]
@@ -87,7 +86,7 @@ def run_Cell_BLAST(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath 
         models = []
 
         for j in range(4):
-            models.append(cb.directi.fit_DIRECTi(train, feat_to_use, cat_dim=200, epoch=500, patience=20, random_seed=j))
+            models.append(cb.directi.fit_DIRECTi(train, feat_to_use, cat_dim=20, epoch=500, patience=20, random_seed=j))
 
         # train model
         blast = cb.blast.BLAST(models, train)
@@ -107,7 +106,8 @@ def run_Cell_BLAST(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath 
 
             # predict labels
             start = tm.time()
-            test_hits = blast.query(test)
+            blast_use = blast.align(test) if aligned == "T" else blast
+            test_hits = blast_use.query(test)
             test_pred=test_hits.reconcile_models().filter().annotate('cell_type')
             ts_time.append(tm.time()-start)
 
@@ -121,10 +121,15 @@ def run_Cell_BLAST(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath 
     tr_time = pd.DataFrame(tr_time)
     ts_time = pd.DataFrame(ts_time)
 
-    truelab.to_csv(str(Path(OutputDir+"/Cell_BLAST_true.csv")),index = False)
-    pred.to_csv(str(Path(OutputDir+"/Cell_BLAST_pred.csv")),index = False)
-    tr_time.to_csv(str(Path(OutputDir+"/Cell_BLAST_training_time.csv")), index = False)
-    ts_time.to_csv(str(Path(OutputDir+"/Cell_BLAST_test_time.csv")),index = False)
+    method_name = "Cell_BLAST"
+    if "seurat_gene" in GeneOrderPath:
+        method_name += "_seurat"
+    if aligned == "T":
+        method_name += "_aligned"
+    truelab.to_csv(str(Path(OutputDir+f"/{method_name}_true.csv")),index = False)
+    pred.to_csv(str(Path(OutputDir+f"/{method_name}_pred.csv")),index = False)
+    tr_time.to_csv(str(Path(OutputDir+f"/{method_name}_training_time.csv")), index = False)
+    ts_time.to_csv(str(Path(OutputDir+f"/{method_name}_test_time.csv")),index = False)
 
 
-run_Cell_BLAST(argv[1], argv[2], argv[3], argv[4], argv[5], int(argv[6]))
+run_Cell_BLAST(argv[1], argv[2], argv[3], argv[4], argv[5], int(argv[6]), argv[7])

@@ -40,9 +40,15 @@ run_SingleR<-function(DataPath,LabelsPath,CV_RDataPath,OutputDir,GeneOrderPath =
 
   for (i in c(1:n_folds)){
     if(!is.null(GeneOrderPath) & !is.null (NumGenes)){
+      if (NumGenes > 0) {
+        feat_to_use <- as.vector(GenesOrder[c(1:NumGenes),i])+1
+      } else {
+        feat_to_use <- as.vector(GenesOrder[,i])+1
+      }
+      feat_to_use <- feat_to_use[!is.na(feat_to_use)]
       start_time <- Sys.time()
-      singler = SingleR(method = "single", Data[as.vector(GenesOrder[c(1:NumGenes),i])+1,Test_Idx[[i]]],
-                        Data[as.vector(GenesOrder[c(1:NumGenes),i])+1,Train_Idx[[i]]],
+      singler = SingleR(method = "single", Data[feat_to_use,Test_Idx[[i]]],
+                        Data[feat_to_use,Train_Idx[[i]]],
                         Labels[Train_Idx[[i]]], numCores = 1)
       end_time <- Sys.time()
     }
@@ -56,17 +62,17 @@ run_SingleR<-function(DataPath,LabelsPath,CV_RDataPath,OutputDir,GeneOrderPath =
     True_Labels_SingleR[i] <- list(Labels[Test_Idx[[i]]])
     Pred_Labels_SingleR[i] <- list(as.vector(singler$labels))
   }
+  method_name <- "SingleR"
+  if (grepl('seurat_gene', GeneOrderPath)) {
+    method_name <- paste(method_name, 'seurat', sep = '_')
+  }
   True_Labels_SingleR <- as.vector(unlist(True_Labels_SingleR))
   Pred_Labels_SingleR <- as.vector(unlist(Pred_Labels_SingleR))
   Total_Time_SingleR <- as.vector(unlist(Total_Time_SingleR))
 
-  write.csv(True_Labels_SingleR,paste0(OutputDir,'/SingleR_true.csv'),row.names = FALSE)
-  write.csv(Pred_Labels_SingleR,paste0(OutputDir,'/SingleR_pred.csv'),row.names = FALSE)
-  write.csv(Total_Time_SingleR,paste0(OutputDir,'/SingleR_total_time.csv'),row.names = FALSE)
+  write.csv(True_Labels_SingleR,paste0(OutputDir,'/',method_name,'_true.csv'),row.names = FALSE)
+  write.csv(Pred_Labels_SingleR,paste0(OutputDir,'/',method_name,'_pred.csv'),row.names = FALSE)
+  write.csv(Total_Time_SingleR,paste0(OutputDir,'/',method_name,'_total_time.csv'),row.names = FALSE)
 }
 
-if (args[6] == "0") {
-  run_SingleR(args[1], args[2], args[3], args[4])
-} else {
-  run_SingleR(args[1], args[2], args[3], args[4], args[5], as.numeric(args[6]))
-}
+run_SingleR(args[1], args[2], args[3], args[4], args[5], as.numeric(args[6]))

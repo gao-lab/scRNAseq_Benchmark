@@ -45,8 +45,8 @@ def run_SVM(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath = "", N
     data = data.iloc[tokeep]
 
     # read the feature file
-    if (NumGenes > 0):
-        features = pd.read_csv(GeneOrderPath,header=0,index_col=None, sep=',')
+    # if (NumGenes > 0):
+    features = pd.read_csv(GeneOrderPath,header=0,index_col=None, sep=',')
 
     # normalize data
     data = np.log1p(data)
@@ -68,9 +68,11 @@ def run_SVM(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath = "", N
         y_test=labels.iloc[test_ind_i]
 
         if (NumGenes > 0):
-            feat_to_use = features.iloc[0:NumGenes,i]
-            train = train.iloc[:,feat_to_use]
-            test = test.iloc[:,feat_to_use]
+            feat_to_use = features.iloc[0:NumGenes,i].dropna()
+        else:
+            feat_to_use = features.iloc[:,i].dropna()
+        train = train.iloc[:,feat_to_use]
+        test = test.iloc[:,feat_to_use]
 
         start=tm.time()
         Classifier.fit(train, y_train)
@@ -90,13 +92,16 @@ def run_SVM(DataPath, LabelsPath, CV_RDataPath, OutputDir, GeneOrderPath = "", N
     ts_time = pd.DataFrame(ts_time)
 
     OutputDir = Path(OutputDir)
-    truelab.to_csv(str(OutputDir / Path("SVM_true.csv")),
+    method_name = "SVM"
+    if "seurat_gene" in GeneOrderPath:
+        method_name += "_seurat"
+    truelab.to_csv(str(OutputDir / Path("%s_true.csv" % method_name)),
                    index = False)
-    pred.to_csv(str(OutputDir / Path("SVM_pred.csv")),
+    pred.to_csv(str(OutputDir / Path("%s_pred.csv" % method_name)),
                 index = False)
-    tr_time.to_csv(str(OutputDir / Path("SVM_training_time.csv")),
+    tr_time.to_csv(str(OutputDir / Path("%s_training_time.csv" % method_name)),
                    index = False)
-    ts_time.to_csv(str(OutputDir / Path("SVM_test_time.csv")),
+    ts_time.to_csv(str(OutputDir / Path("%s_test_time.csv" % method_name)),
                    index = False)
 
 run_SVM(argv[1], argv[2], argv[3], argv[4], argv[5], int(argv[6]))
